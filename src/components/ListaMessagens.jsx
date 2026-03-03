@@ -1,38 +1,44 @@
 import { useEffect, useRef } from "react"
+import Mensagem from "./Mensagem"
 
-export default function ListaMensagens({ mensagens, loading }) {
-    const fimRef = useRef(null)
+
+const ListaMessagens = ({ mensagens, loading }) => {
+    const mensagemRef = useRef()
+
+    const scrollbaixo = () => {
+        mensagemRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+
 
     useEffect(() => {
-        fimRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, [mensagens, loading])
+        scrollbaixo()
+    }, [mensagens])
+
 
     return (
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {mensagens.map((msg) => (
-                <div
-                    key={msg.id}
-                    className={`flex ${msg.remetente === "usuario" ? "justify-end" : "justify-start"
-                        }`}
-                >
-                    <div
-                        className={`max-w-xs md:max-w-md p-3 rounded-2xl shadow-lg ${msg.remetente === "usuario"
-                                ? "bg-blue-500"
-                                : "bg-gray-700"
-                            }`}
-                    >
-                        {msg.texto}
-                    </div>
-                </div>
+            {mensagens.map(mensagem => (
+                <Mensagem key={mensagem.id} mensagem={mensagem} />
             ))}
 
             {loading && (
-                <div className="text-sm text-gray-400 animate-pulse">
-                    Digitando...
+                <div className="flex justify-start">
+                    <div className="bg-gray-50 rounded-2xl rounder-bl-none shadow-md border-gray-200">
+                        <div className="flex space-x-2">
+                            <div className="w-3 h-3 bg-black-500 rounded-full animate-pulse"></div>
+                            <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse delay-100"></div>
+                            <div className="w-3 h-3 bg-black-500 rounded-full animate-pulse delay-200"></div>
+                        </div>
+                    </div>
                 </div>
             )}
 
-            <div ref={fimRef} />
+
+            <div ref={mensagemRef}></div>
+
         </div>
     )
+
 }
+
+export default ListaMessagens
