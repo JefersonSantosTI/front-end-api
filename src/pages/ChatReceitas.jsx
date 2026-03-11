@@ -50,21 +50,20 @@ const ChatReceitas = () => {
     }
 
 
-    return <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-700 p-4">
-        <div className="container mx-auto max-w-4xl">
+    return <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-700 p-2 sm:p-4">
+        <div className="mx-auto max-w-4xl h-screen flex flex-col">
 
-            <header className="text-center mb-8">
-
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 text-transparent bg-clip-text mb-2">
+            <header className="text-center mb-4 sm:mb-6">
+                <h1 className="text-3xl sm:text-5xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 text-transparent bg-clip-text">
                     🦾 Treino Fit 🍽️
                 </h1>
 
-                <p className="text-gray-300 text-lg">
-                    Seu assistente pessoal para treinos e alimentação
+                <p className="text-gray-300 text-sm sm:text-lg">
+                    Seu assistente para treinos e alimentação
                 </p>
             </header>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl h-[600px] border border-gray-200 flex flex-col">
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200 flex flex-col flex-1 overflow-hidden">
                 <ListaMessagens mensagens={mensagens} loading={loading} />
                 <ChatBox onEnviarMensagem={onEnviarMensagem} desabilitado={loading} />
             </div>
