@@ -12,27 +12,29 @@ const ChatBox = ({ onEnviarMensagem, desabilitado }) => {
     }
 
     return (
-        <div className="border-t border-gray-200 bg-gray-50/80 p-4">
-            <form className="flex space-x-3" onSubmit={handleSubmit}>
+        <div className="border-t border-gray-200 bg-white p-3 sm:p-4">
+            <form className="flex gap-2 sm:gap-3" onSubmit={handleSubmit}>
+
                 <input
                     type="text"
                     value={mensagem}
                     onChange={(e) => setMensagem(e.target.value)}
-                    placeholder="Digite Aqui Para Seu Melhor Treino Ou Sua Melhor Alimentaçao"
+                    placeholder="Pergunte sobre treino ou alimentação..."
                     disabled={desabilitado}
+                    className="flex-1 px-4 py-2 sm:px-5 sm:py-3 bg-gray-100 border border-gray-300 rounded-full focus:ring-2 focus:ring-emerald-500 outline-none text-sm sm:text-base"
+                />
 
-
-                    className="flex-1 px-5 py-3 bg-white border border-gray-300 rounded-full shadow-sm focus:ring-2 outline-none" />
                 <button
                     type="submit"
                     disabled={desabilitado}
-                    className="px-8 py-3 bg-linear-to-br from-purple-200 to-emerald-500 hover:from-purple-50 hover:-to-emerald-400 cursor-pointer text-black rounded-full disabled:from-gray-400 disabled:to-gray-300 disabled:cursor-not-allowed">Enviar</button>
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow transition disabled:bg-gray-400"
+                >
+                    Enviar
+                </button>
+
             </form>
         </div>
-
-
     )
-
 
 
 
