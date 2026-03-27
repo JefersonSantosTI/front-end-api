@@ -20,47 +20,46 @@ function App() {
   };
 
   const liberarComCodigo = () => {
-    // Código de ativação: mude aqui se quiser outro
-    if (codigoInput.toUpperCase() === "TREINOFIT2026") {
+    // 🔐 COLOQUE SEU CÓDIGO SECRETO AQUI (Sempre em LETRAS MAIÚSCULAS)
+    const CODIGO_CORRETO = "TREINOFIT2026";
+
+    if (codigoInput.trim().toUpperCase() === CODIGO_CORRETO) {
       setBloqueado(false);
       alert("Acesso liberado! Bom treino! 💪");
     } else {
-      alert("Código inválido. Fale com o suporte no WhatsApp.");
+      alert("Código inválido. Verifique o código enviado no seu WhatsApp.");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans">
-      {/* 1. SE NÃO LOGOU: Tela de Login */}
       {!usuario ? (
         <Login aoLogar={handleLogin} />
       ) :
 
-        /* 2. SE LOGOU MAS NÃO ESCOLHEU PLANO: Tela de Planos */
         !plano ? (
           <TelaPlanos aoEscolher={handleEscolhaPlano} />
         ) :
 
-          /* 3. SE ESCOLHEU PLANO PAGO E ESTÁ BLOQUEADO: Tela de Código */
           bloqueado && plano !== 'Gratis' ? (
             <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-gray-900">
               <div className="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-2xl w-full max-w-md">
                 <h2 className="text-2xl font-bold text-emerald-400 mb-4 tracking-tight">Aguardando Pagamento...</h2>
                 <p className="mb-6 text-gray-300 text-sm leading-relaxed">
-                  Enviamos os dados do PIX para o seu WhatsApp.<br />
-                  Assim que realizar o pagamento, enviaremos o seu **Código de Ativação**.
+                  Enviamos os detalhes para o seu WhatsApp.<br />
+                  Após o pagamento, insira abaixo o **Código de Ativação** que você recebeu.
                 </p>
 
                 <div className="flex flex-col gap-3">
                   <label className="text-left text-xs font-bold text-gray-500 uppercase ml-1">
-                    Insira o código recebido:
+                    Código de Acesso:
                   </label>
                   <input
                     type="text"
-                    placeholder="EX: TREINOFIT2026"
-                    // Ajuste de cores: text-white e placeholder-gray-500
-                    className="bg-gray-900 border-2 border-gray-700 p-4 rounded-xl text-center w-full uppercase text-white font-mono text-xl focus:border-emerald-500 outline-none transition-all placeholder:text-gray-600"
-                    style={{ color: 'white' }} // Reforço para garantir visibilidade
+                    // REMOVIDO: O placeholder agora não dá pistas do código
+                    placeholder="Digite o código aqui..."
+                    className="bg-gray-900 border-2 border-gray-700 p-4 rounded-xl text-center w-full uppercase text-white font-mono text-xl focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
+                    style={{ color: 'white' }}
                     value={codigoInput}
                     onChange={(e) => setCodigoInput(e.target.value)}
                   />
@@ -73,13 +72,12 @@ function App() {
                   </button>
                 </div>
 
-                <p className="mt-8 text-gray-500 text-xs italic">
-                  O código é enviado manualmente após a confirmação do PIX.
+                <p className="mt-8 text-gray-500 text-[10px] uppercase tracking-widest">
+                  Verificação Manual Ativa
                 </p>
               </div>
             </div>
           ) : (
-            /* 4. TUDO OK: Chat Liberado */
             <ChatReceitas whatsapp={usuario} plano={plano} />
           )}
     </div>
