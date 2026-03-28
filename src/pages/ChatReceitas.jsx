@@ -72,11 +72,10 @@ const ChatReceitas = ({ whatsapp }) => {
     };
 
     return (
-        // O uso de 'fixed inset-0' garante que o app ocupe a tela toda sem rolagens fantasmas no iOS
         <div className="fixed inset-0 bg-slate-900 flex flex-col font-sans overflow-hidden">
 
-            {/* HEADER PROFISSIONAL - Altura fixa garantida */}
-            <header className="bg-slate-800 border-b border-emerald-500/30 p-4 flex-none z-20 shadow-xl">
+            {/* HEADER - Mantido conforme você gostou, mas com 'sticky' garantido */}
+            <header className="bg-slate-800 border-b border-emerald-500/30 p-4 flex-none z-30 shadow-xl">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2">
@@ -90,38 +89,39 @@ const ChatReceitas = ({ whatsapp }) => {
                         <p className="text-[10px] text-emerald-400 font-bold tracking-[0.2em] uppercase mt-1">Consultoria Digital</p>
                     </div>
 
-                    <div className="text-right flex flex-col justify-center">
+                    <div className="text-right">
                         <span className="text-[9px] text-slate-500 uppercase font-black">ID de Acesso</span>
-                        <span className="text-emerald-400 text-xs font-mono font-bold">{whatsapp}</span>
+                        <span className="text-emerald-400 text-xs font-mono font-bold block">{whatsapp}</span>
                     </div>
                 </div>
             </header>
 
-            {/* ÁREA DO CHAT - Fundo com textura leve e scroll suave */}
+            {/* ÁREA DO CHAT - Com ajuste para quebra de linha */}
             <main className="flex-1 overflow-hidden bg-slate-100 flex flex-col relative">
-                {/* Overlay de textura opcional para dar profundidade */}
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
 
-                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar z-10">
-                    <div className="max-w-4xl mx-auto w-full">
+                <div className="flex-1 overflow-y-auto p-4 z-10 custom-scrollbar">
+                    <div className="max-w-4xl mx-auto w-full" style={{ whiteSpace: 'pre-wrap' }}>
+                        {/* O style acima garante o pulo de linha das mensagens da IA */}
                         <ListaMessagens mensagens={mensagens} loading={loading} />
                     </div>
                 </div>
             </main>
 
-            {/* RODAPÉ - Onde fica o campo de texto */}
-            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 flex-none z-20 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+            {/* RODAPÉ */}
+            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 flex-none z-30 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
                 <div className="max-w-4xl mx-auto">
                     <ChatBox onEnviarMensagem={onEnviarMensagem} desabilitado={loading} />
                 </div>
             </footer>
 
-            {/* Estilização da barra de rolagem para PC */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+                
+                /* FORÇAR INPUT A NÃO DAR ZOOM NO IPHONE */
+                input, textarea { font-size: 16px !important; }
             `}} />
         </div>
     );
