@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- AJUSTE AQUI: Impede o zoom automático ao clicar no input e trava o layout no mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
     <title>Treino Fit</title>
 
@@ -13,12 +14,29 @@
     <!-- descrição para SEO -->
     <meta name="description" content="Treino Fit - Assistente inteligente para treinos e alimentação saudável." />
 
-    <!-- cor da barra no mobile -->
+    <!-- cor da barra no mobile (Verde Emerald) -->
     <meta name="theme-color" content="#10b981" />
+
+    <!-- Suporte extra para iOS (deixa a barra de status bonita) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+      /* Impede o scroll "elástico" no topo e no fundo no iOS para não quebrar o layout do chat */
+      html, body {
+        overflow: hidden;
+        height: 100%;
+        position: fixed;
+        width: 100%;
+      }
+      #root {
+        height: 100%;
+      }
+    </style>
 
   </head>
 
-  <body class="bg-gray-100">
+  <body class="bg-slate-900">
     <div id="root"></div>
 
     <script type="module" src="/src/main.jsx"></script>
