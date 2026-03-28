@@ -2,7 +2,7 @@ import React from 'react';
 
 const TelaPlanos = ({ aoEscolher }) => {
     // 🚨 COLOQUE SEU NÚMERO AQUI (DDD + NÚMERO) SEM ESPAÇOS OU TRAÇOS
-    const MEU_WHATSAPP = "5561991268229";
+    const MEU_WHATSAPP = "5511939242518";
 
     const planos = [
         {
