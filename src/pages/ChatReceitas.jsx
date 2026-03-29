@@ -1,36 +1,45 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import ListaMessagens from "../components/ListaMessagens"
 import ChatBox from "../components/ChatBox"
 import { api } from "../services/api"
 
-// Recebemos isVip e aoPedirUpgrade do App.js
 const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
     const [loading, setLoading] = useState(false)
     const [mensagens, setMensagens] = useState([])
     const [mostrarBotãoUpgrade, setMostrarBotãoUpgrade] = useState(false)
 
-    // EFEITO: Carregar o histórico do banco de dados ao abrir a página
+    // Referência para o scroll automático
+    const scrollRef = useRef(null);
+
+    // Função para rolar o chat para baixo
+    const scrollToBottom = () => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    };
+
+    // Rola sempre que a lista de mensagens ou o botão mudar
+    useEffect(() => {
+        scrollToBottom();
+    }, [mensagens, mostrarBotãoUpgrade]);
+
     useEffect(() => {
         const carregarHistorico = async () => {
             if (!whatsapp) return;
-
             setLoading(true);
             try {
                 const response = await api.get(`/receitas/historico/${whatsapp}`);
-
                 const historicoFormatado = response.data.map((msg, index) => {
-                    // Se encontrar a trava no histórico antigo, já prepara o botão de upgrade
-                    if (msg.content.includes("[CONTEÚDO BLOQUEADO]")) {
+                    // Detecção mais flexível no histórico
+                    if (msg.content.toUpperCase().includes("BLOQUEADO")) {
                         setMostrarBotãoUpgrade(true);
                     }
-
                     return {
                         id: index,
                         texto: msg.content,
                         remetente: msg.role === "user" ? "usuario" : "bot"
                     };
                 });
-
                 setMensagens(historicoFormatado);
             } catch (error) {
                 console.error("Erro ao carregar histórico:", error);
@@ -38,7 +47,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                 setLoading(false);
             }
         };
-
         carregarHistorico();
     }, [whatsapp]);
 
@@ -53,7 +61,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
         setMensagens((prev) => [...prev, novaMensagemUsuario]);
         setLoading(true);
-        setMostrarBotãoUpgrade(false); // Esconde o botão enquanto a IA pensa
 
         try {
             const response = await api.post("/receitas/perguntar", {
@@ -63,9 +70,11 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
             const respostaTexto = response.data.resposta;
 
-            // 💡 LÓGICA DE DETECÇÃO DE TRAVA
-            if (respostaTexto.includes("[CONTEÚDO BLOQUEADO]")) {
+            // 💡 DETECÇÃO MELHORADA: Se tiver "BLOQUEADO" e NÃO for VIP, mostra o botão
+            if (respostaTexto.toUpperCase().includes("BLOQUEADO") && !isVip) {
                 setMostrarBotãoUpgrade(true);
+            } else {
+                setMostrarBotãoUpgrade(false);
             }
 
             const novaMensagemBot = {
@@ -80,7 +89,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             console.error("Erro ao enviar mensagem:", error);
             setMensagens((prev) => [...prev, {
                 id: Date.now() + 2,
-                texto: "Ops! Ocorreu um erro. Tente novamente em instantes. 😢",
+                texto: "Ops! Tente novamente em instantes. 😢",
                 remetente: "bot"
             }]);
         } finally {
@@ -99,9 +108,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                             <div className="bg-emerald-500 p-1 rounded">
                                 <span className="text-black font-black text-xs leading-none">IA</span>
                             </div>
-                            <h1 className="text-xl font-black text-white tracking-tight">
-                                TREINO FIT
-                            </h1>
+                            <h1 className="text-xl font-black text-white tracking-tight">TREINO FIT</h1>
                         </div>
                         <p className="text-[10px] text-emerald-400 font-bold tracking-[0.2em] uppercase mt-1">Consultoria Digital</p>
                     </div>
@@ -122,20 +129,25 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                 <div className="flex-1 overflow-y-auto p-4 z-10 custom-scrollbar">
                     <div className="max-w-4xl mx-auto w-full" style={{ whiteSpace: 'pre-wrap' }}>
                         <ListaMessagens mensagens={mensagens} loading={loading} />
-                    </div>
 
-                    {/* BOTÃO DE UPGRADE DINÂMICO - Aparece logo após a mensagem bloqueada */}
-                    {mostrarBotãoUpgrade && !isVip && (
-                        <div className="max-w-4xl mx-auto w-full mt-4 animate-bounce">
-                            <button
-                                onClick={aoPedirUpgrade}
-                                className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black py-4 rounded-2xl shadow-lg border-b-4 border-red-800 active:border-b-0 transition-all"
-                            >
-                                🔓 LIBERAR DIETA COMPLETA AGORA
-                            </button>
-                            <p className="text-center text-slate-400 text-[10px] mt-2 font-bold uppercase">Clique para desbloquear almoço e jantar</p>
-                        </div>
-                    )}
+                        {/* BOTÃO DE UPGRADE DINÂMICO */}
+                        {mostrarBotãoUpgrade && !isVip && (
+                            <div className="w-full mt-6 mb-10 animate-bounce transition-all">
+                                <button
+                                    onClick={aoPedirUpgrade}
+                                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black py-5 rounded-2xl shadow-[0_10px_20px_rgba(234,88,12,0.3)] border-b-4 border-red-800 active:border-b-0 active:translate-y-1 transition-all"
+                                >
+                                    🔓 LIBERAR DIETA COMPLETA AGORA
+                                </button>
+                                <p className="text-center text-slate-500 text-[11px] mt-3 font-black uppercase tracking-widest">
+                                    Acesso imediato ao almoço e jantar
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Elemento de referência para o Scroll */}
+                        <div ref={scrollRef} />
+                    </div>
                 </div>
             </main>
 
@@ -150,14 +162,12 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                 __html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
-                
                 input, textarea { font-size: 16px !important; }
-                
                 @keyframes bounce {
-                    0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
-                    50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-10px); }
                 }
-                .animate-bounce { animation: bounce 1s infinite; }
+                .animate-bounce { animation: bounce 1.5s infinite; }
             `}} />
         </div>
     );
