@@ -28,8 +28,7 @@ const TelaPlanos = () => {
     ];
 
     const handleAssinar = (plano) => {
-        const mensagem = `Olá! Quero o Plano ${plano.nome} do Treino Fit IA. Me mande o PIX para liberar meu código VIP! 🚀`;
-        const url = `https://wa.me/${MEU_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
+        const mensagem = `Olá! Quero o Plano ${plano.nome} (R$ ${plano.total}) do Treino Fit IA. Me mande o PIX para liberar meu código VIP! 🚀`; const url = `https://wa.me/${MEU_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
         window.open(url, '_blank');
     };
 
@@ -45,8 +44,8 @@ const TelaPlanos = () => {
                     <div
                         key={index}
                         className={`relative p-6 rounded-3xl border-2 flex flex-col justify-between transition-all ${plano.destaque
-                                ? 'border-emerald-500 bg-gray-800 shadow-[0_0_30px_rgba(16,185,129,0.1)]'
-                                : 'border-gray-700 bg-gray-850 opacity-80 hover:opacity-100'
+                            ? 'border-emerald-500 bg-gray-800 shadow-[0_0_30px_rgba(16,185,129,0.1)]'
+                            : 'border-gray-700 bg-gray-850 opacity-80 hover:opacity-100'
                             }`}
                     >
                         {plano.destaque && (
@@ -74,8 +73,8 @@ const TelaPlanos = () => {
                         <button
                             onClick={() => handleAssinar(plano)}
                             className={`w-full py-4 rounded-xl font-black text-sm uppercase transition-all active:scale-95 ${plano.destaque
-                                    ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
-                                    : 'bg-white text-black hover:bg-gray-200'
+                                ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
+                                : 'bg-white text-black hover:bg-gray-200'
                                 }`}
                         >
                             Assinar via PIX
