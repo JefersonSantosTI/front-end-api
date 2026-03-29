@@ -16,12 +16,11 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         }
     };
 
-    // 1. Monitora mensagens e carregamento para scroll
     useEffect(() => {
         scrollToBottom();
     }, [mensagens, loading, mostrarBotãoUpgrade]);
 
-    // 2. FUNÇÃO CENTRAL DE CARREGAMENTO
+    // 1. FUNÇÃO CENTRAL DE CARREGAMENTO (Com limpeza para VIP)
     const carregarHistorico = async () => {
         if (!whatsapp) return;
         setLoading(true);
@@ -33,9 +32,15 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             let detectouBloqueioNoHistorico = false;
 
             const historicoFormatado = dados.map((msg, index) => {
-                const texto = msg.content || "";
+                let texto = msg.content || "";
 
-                // Só bloqueia se NÃO for VIP e tiver a palavra chave
+                // Se for VIP, limpamos as marcas de bloqueio do texto antigo visualmente
+                if (isVip) {
+                    texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Liberado)");
+                    texto = texto.replace(/Para ver o resto do seu plano, clique no BOTÃO LARANJA.*/gi, "Aproveite sua dieta completa abaixo! 💪");
+                }
+
+                // Verifica se deve mostrar o botão (apenas para não VIPs)
                 if (!isVip && texto.toUpperCase().includes("BLOQUEADO")) {
                     detectouBloqueioNoHistorico = true;
                 }
@@ -49,6 +54,13 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
             setMostrarBotãoUpgrade(detectouBloqueioNoHistorico);
             setMensagens(historicoFormatado);
+
+            // GATILHO AUTOMÁTICO: Se ele virou VIP agora e o histórico ainda tinha bloqueio,
+            // pedimos a dieta completa automaticamente para ele.
+            if (isVip && detectouBloqueioNoHistorico) {
+                onEnviarMensagem("Obrigado! Agora mande minha dieta completa sem bloqueios por favor.");
+            }
+
         } catch (error) {
             console.error("Erro ao carregar histórico:", error);
         } finally {
@@ -56,18 +68,9 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         }
     };
 
-    // 3. Carrega ao montar o componente ou quando o WhatsApp mudar
     useEffect(() => {
         carregarHistorico();
-    }, [whatsapp]);
-
-    // 4. A MÁGICA: Quando o status VIP mudar para true, recarrega tudo automaticamente
-    useEffect(() => {
-        if (isVip === true) {
-            setMostrarBotãoUpgrade(false); // Remove o botão laranja na hora
-            carregarHistorico(); // Puxa o histórico novo (sem bloqueios) da API
-        }
-    }, [isVip]);
+    }, [whatsapp, isVip]); // Recarrega sempre que o status VIP mudar
 
     const onEnviarMensagem = async (textoDigitado) => {
         if (!textoDigitado.trim()) return;
@@ -88,12 +91,12 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             });
 
             const respostaTexto = response.data.resposta || "";
-
-            // Se a resposta da IA vier com bloqueio e o cara não for VIP, trava.
             const temTextoDeBloqueio = respostaTexto.toUpperCase().includes("BLOQUEADO");
 
             if (!isVip && temTextoDeBloqueio) {
                 setMostrarBotãoUpgrade(true);
+            } else {
+                setMostrarBotãoUpgrade(false);
             }
 
             const novaMensagemBot = {
@@ -118,7 +121,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
     return (
         <div className="fixed inset-0 bg-slate-900 flex flex-col font-sans overflow-hidden">
-            {/* HEADER */}
             <header className="bg-slate-800 border-b border-emerald-500/30 p-4 flex-none z-30 shadow-xl">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <div className="flex flex-col">
@@ -140,7 +142,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                 </div>
             </header>
 
-            {/* ÁREA DO CHAT */}
             <main className="flex-1 overflow-hidden bg-slate-100 flex flex-col relative">
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
 
@@ -148,7 +149,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                     <div className="max-w-4xl mx-auto w-full">
                         <ListaMessagens mensagens={mensagens} loading={loading} />
 
-                        {/* BOTÃO DE UPGRADE */}
                         {mostrarBotãoUpgrade && !isVip && (
                             <div className="w-full mt-6 mb-12 animate-bounce-slow transition-all">
                                 <button
@@ -162,20 +162,17 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                                 </p>
                             </div>
                         )}
-
                         <div ref={scrollRef} className="h-4" />
                     </div>
                 </div>
             </main>
 
-            {/* RODAPÉ */}
             <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 flex-none z-30 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
                 <div className="max-w-4xl mx-auto">
                     <ChatBox
                         onEnviarMensagem={onEnviarMensagem}
                         desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
                     />
-
                     {mostrarBotãoUpgrade && !isVip && (
                         <p className="text-center text-red-500 text-[10px] font-black uppercase mt-2 tracking-widest animate-pulse">
                             ⚠️ Digitação bloqueada! Clique no botão laranja para continuar.
