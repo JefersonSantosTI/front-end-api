@@ -16,47 +16,58 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         }
     };
 
+    // 1. Monitora mensagens e carregamento para scroll
     useEffect(() => {
         scrollToBottom();
     }, [mensagens, loading, mostrarBotãoUpgrade]);
 
+    // 2. FUNÇÃO CENTRAL DE CARREGAMENTO
+    const carregarHistorico = async () => {
+        if (!whatsapp) return;
+        setLoading(true);
+
+        try {
+            const response = await api.get(`/receitas/historico/${whatsapp}`);
+            const dados = Array.isArray(response.data) ? response.data : [];
+
+            let detectouBloqueioNoHistorico = false;
+
+            const historicoFormatado = dados.map((msg, index) => {
+                const texto = msg.content || "";
+
+                // Só bloqueia se NÃO for VIP e tiver a palavra chave
+                if (!isVip && texto.toUpperCase().includes("BLOQUEADO")) {
+                    detectouBloqueioNoHistorico = true;
+                }
+
+                return {
+                    id: index,
+                    texto: texto,
+                    remetente: msg.role === "assistant" ? "bot" : "usuario"
+                };
+            });
+
+            setMostrarBotãoUpgrade(detectouBloqueioNoHistorico);
+            setMensagens(historicoFormatado);
+        } catch (error) {
+            console.error("Erro ao carregar histórico:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 3. Carrega ao montar o componente ou quando o WhatsApp mudar
     useEffect(() => {
-        const carregarHistorico = async () => {
-            if (!whatsapp) return;
-            setLoading(true);
-            setMostrarBotãoUpgrade(false);
-
-            try {
-                const response = await api.get(`/receitas/historico/${whatsapp}`);
-                const dados = Array.isArray(response.data) ? response.data : [];
-
-                let detectouBloqueioNoHistorico = false;
-
-                const historicoFormatado = dados.map((msg, index) => {
-                    const texto = msg.content || "";
-
-                    // Só ativa o botão de upgrade se encontrar a palavra BLOQUEADO no histórico de um usuário não VIP
-                    if (!isVip && texto.toUpperCase().includes("BLOQUEADO")) {
-                        detectouBloqueioNoHistorico = true;
-                    }
-
-                    return {
-                        id: index,
-                        texto: texto,
-                        remetente: msg.role === "assistant" ? "bot" : "usuario"
-                    };
-                });
-
-                setMostrarBotãoUpgrade(detectouBloqueioNoHistorico);
-                setMensagens(historicoFormatado);
-            } catch (error) {
-                console.error("Erro ao carregar histórico:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         carregarHistorico();
-    }, [whatsapp, isVip]);
+    }, [whatsapp]);
+
+    // 4. A MÁGICA: Quando o status VIP mudar para true, recarrega tudo automaticamente
+    useEffect(() => {
+        if (isVip === true) {
+            setMostrarBotãoUpgrade(false); // Remove o botão laranja na hora
+            carregarHistorico(); // Puxa o histórico novo (sem bloqueios) da API
+        }
+    }, [isVip]);
 
     const onEnviarMensagem = async (textoDigitado) => {
         if (!textoDigitado.trim()) return;
@@ -78,16 +89,11 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
             const respostaTexto = response.data.resposta || "";
 
-            // --- LÓGICA DE BLOQUEIO INTELIGENTE ---
-            // O botão só aparece se a IA mandar a palavra "BLOQUEADO" e o usuário não for VIP.
-            // Ignoramos o statusTrial aqui para permitir que a conversa flua (Nome, Idade, etc).
+            // Se a resposta da IA vier com bloqueio e o cara não for VIP, trava.
             const temTextoDeBloqueio = respostaTexto.toUpperCase().includes("BLOQUEADO");
 
             if (!isVip && temTextoDeBloqueio) {
                 setMostrarBotãoUpgrade(true);
-            } else {
-                // Mantém o chat aberto enquanto a IA estiver coletando dados
-                setMostrarBotãoUpgrade(false);
             }
 
             const novaMensagemBot = {
@@ -142,7 +148,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                     <div className="max-w-4xl mx-auto w-full">
                         <ListaMessagens mensagens={mensagens} loading={loading} />
 
-                        {/* BOTÃO DE UPGRADE DINÂMICO */}
+                        {/* BOTÃO DE UPGRADE */}
                         {mostrarBotãoUpgrade && !isVip && (
                             <div className="w-full mt-6 mb-12 animate-bounce-slow transition-all">
                                 <button
@@ -167,7 +173,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                 <div className="max-w-4xl mx-auto">
                     <ChatBox
                         onEnviarMensagem={onEnviarMensagem}
-                        /* Agora o desabilitado só ativa se a IA de fato bloqueou o conteúdo */
                         desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
                     />
 
