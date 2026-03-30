@@ -11,7 +11,7 @@ function App() {
   const [codigoInput, setCodigoInput] = useState("");
 
   // URL da sua API (Altere para a URL real se estiver em produção)
-  const API_URL = "http://localhost:5000/api/receitas";
+  const API_URL = "https://api-backend-treino-fit.onrender.com/api/receitas";
 
   const obterDadosPerfil = () => ({
     nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
