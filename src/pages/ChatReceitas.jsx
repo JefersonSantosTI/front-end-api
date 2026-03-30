@@ -16,11 +16,46 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         }
     };
 
+    // --- FUNÇÃO PARA ATUALIZAR O DASHBOARD AUTOMATICAMENTE ---
+    const extrairEGuardarDados = (texto) => {
+        const txt = texto.toLowerCase();
+
+        // 1. Tentar capturar Nome (Ex: "Obrigado, Marina!" ou "Perfeito, Marina!")
+        const regexNome = /(?:obrigado|perfeito|olá|bem-vinda|fala|oi),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]+)/i;
+        const matchNome = texto.match(regexNome);
+        if (matchNome && matchNome[1]) {
+            localStorage.setItem("perfil_nome", matchNome[1]);
+        }
+
+        // 2. Tentar capturar Peso (Ex: "Peso: 70kg" ou "seu peso é 70")
+        const regexPeso = /(?:peso:?|pesando)\s*(\d+)/i;
+        const matchPeso = txt.match(regexPeso);
+        if (matchPeso) localStorage.setItem("perfil_peso", matchPeso[1]);
+
+        // 3. Tentar capturar Altura (Ex: "Altura: 1.76" ou "1,76m")
+        const regexAltura = /(?:altura:?)\s*(\d[.,]\d{2})/i;
+        const matchAltura = txt.match(regexAltura);
+        if (matchAltura) localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
+
+        // 4. Tentar capturar Meta (Ex: "Meta: Secar" ou "foco em emagrecimento")
+        if (txt.includes("emagrecer") || txt.includes("secar") || txt.includes("perder peso")) {
+            localStorage.setItem("perfil_meta", "Secar");
+        } else if (txt.includes("hipertrofia") || txt.includes("ganhar massa")) {
+            localStorage.setItem("perfil_meta", "Ganhar");
+        }
+
+        // 5. Cálculo Dinâmico de "Quanto falta" (Simulação simples baseada no IMC)
+        if (txt.includes("imc")) {
+            // Se a IA calculou o IMC, podemos assumir que ela deu um norte
+            // Aqui você pode definir uma lógica ou apenas salvar um valor fixo de progresso
+            localStorage.setItem("perfil_faltam", "7.5");
+        }
+    };
+
     useEffect(() => {
         scrollToBottom();
     }, [mensagens, loading, mostrarBotãoUpgrade]);
 
-    // 1. FUNÇÃO CENTRAL DE CARREGAMENTO (Com limpeza para VIP)
     const carregarHistorico = async () => {
         if (!whatsapp) return;
         setLoading(true);
@@ -34,13 +69,14 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             const historicoFormatado = dados.map((msg, index) => {
                 let texto = msg.content || "";
 
-                // Se for VIP, limpamos as marcas de bloqueio do texto antigo visualmente
+                // Sempre que carregar o histórico, tenta atualizar o dashboard com a última info
+                if (msg.role === "assistant") extrairEGuardarDados(texto);
+
                 if (isVip) {
                     texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Liberado)");
                     texto = texto.replace(/Para ver o resto do seu plano, clique no BOTÃO LARANJA.*/gi, "Aproveite sua dieta completa abaixo! 💪");
                 }
 
-                // Verifica se deve mostrar o botão (apenas para não VIPs)
                 if (!isVip && texto.toUpperCase().includes("BLOQUEADO")) {
                     detectouBloqueioNoHistorico = true;
                 }
@@ -55,8 +91,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             setMostrarBotãoUpgrade(detectouBloqueioNoHistorico);
             setMensagens(historicoFormatado);
 
-            // GATILHO AUTOMÁTICO: Se ele virou VIP agora e o histórico ainda tinha bloqueio,
-            // pedimos a dieta completa automaticamente para ele.
             if (isVip && detectouBloqueioNoHistorico) {
                 onEnviarMensagem("Obrigado! Agora mande minha dieta completa sem bloqueios por favor.");
             }
@@ -70,7 +104,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
     useEffect(() => {
         carregarHistorico();
-    }, [whatsapp, isVip]); // Recarrega sempre que o status VIP mudar
+    }, [whatsapp, isVip]);
 
     const onEnviarMensagem = async (textoDigitado) => {
         if (!textoDigitado.trim()) return;
@@ -91,6 +125,10 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             });
 
             const respostaTexto = response.data.resposta || "";
+
+            // ATUALIZA OS DADOS NO STORAGE ASSIM QUE O BOT RESPONDE
+            extrairEGuardarDados(respostaTexto);
+
             const temTextoDeBloqueio = respostaTexto.toUpperCase().includes("BLOQUEADO");
 
             if (!isVip && temTextoDeBloqueio) {
@@ -120,27 +158,8 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900 flex flex-col font-sans overflow-hidden">
-            <header className="bg-slate-800 border-b border-emerald-500/30 p-4 flex-none z-30 shadow-xl">
-                <div className="max-w-4xl mx-auto flex justify-between items-center">
-                    <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                            <div className="bg-emerald-500 p-1 rounded">
-                                <span className="text-black font-black text-xs leading-none">IA</span>
-                            </div>
-                            <h1 className="text-xl font-black text-white tracking-tight">TREINO FIT</h1>
-                        </div>
-                        <p className="text-[10px] text-emerald-400 font-bold tracking-[0.2em] uppercase mt-1">Consultoria Digital</p>
-                    </div>
-
-                    <div className="text-right">
-                        <span className="text-[9px] text-slate-500 uppercase font-black">Plano</span>
-                        <span className={`block text-xs font-bold uppercase ${isVip ? 'text-emerald-400' : 'text-orange-400'}`}>
-                            {isVip ? '💎 VIP Ativo' : '🍊 Degustação'}
-                        </span>
-                    </div>
-                </div>
-            </header>
+        <div className="flex flex-col h-full font-sans overflow-hidden bg-slate-900">
+            {/* Removi o Header fixo interno pois agora o App.jsx já prove um header superior melhor */}
 
             <main className="flex-1 overflow-hidden bg-slate-100 flex flex-col relative">
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
