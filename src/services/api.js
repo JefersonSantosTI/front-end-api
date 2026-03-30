@@ -1,5 +1,6 @@
 import axios from "axios"
 
 export const api = axios.create({
-  baseURL: "https://api-backend-treino-fit.onrender.com"
+  // Adicionamos o /api no final da URL base
+  baseURL: "https://api-backend-treino-fit.onrender.com/api"
 })
