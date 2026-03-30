@@ -10,19 +10,19 @@ function App() {
   const [bloqueado, setBloqueado] = useState(false);
   const [codigoInput, setCodigoInput] = useState("");
 
-  // URL da sua API (Altere para a URL real se estiver em produção)
   const API_URL = "https://api-backend-treino-fit.onrender.com/api/receitas";
 
-  const obterDadosPerfil = () => ({
+  // --- SOLUÇÃO DO ERRO ---
+  // Em vez de usar useState + useEffect, calculamos os dados diretamente.
+  // Toda vez que a 'abaAtiva' mudar, o React vai ler o localStorage de novo automaticamente.
+  const dadosPerfil = {
     nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
-    peso: localStorage.getItem("perfil_peso") || "0",
-    altura: localStorage.getItem("perfil_altura") || "0",
-    meta: localStorage.getItem("perfil_meta") || "---",
+    peso: localStorage.getItem("perfil_peso") || "100",
+    altura: localStorage.getItem("perfil_altura") || "1.82",
+    meta: localStorage.getItem("perfil_meta") || "Emagrecimento",
     faltam: localStorage.getItem("perfil_faltam") || "0",
     diasRestantes: localStorage.getItem("perfil_dias") || "0"
-  });
-
-  const dadosPerfil = obterDadosPerfil();
+  };
 
   const handleLogin = (whatsapp) => {
     localStorage.setItem("usuario_whatsapp", whatsapp);
@@ -30,28 +30,28 @@ function App() {
     setAbaAtiva("home");
   };
 
-  // --- ATUALIZADO: AGORA FALA COM O BACK-END ---
   const liberarComCodigo = async () => {
     const CODIGO_CORRETO = "TREINOFIT2026";
 
     if (codigoInput.trim().toUpperCase() === CODIGO_CORRETO) {
       try {
-        // 1. Avisa o Back-end para mudar o status no Banco de Dados
-        const response = await fetch(`${API_URL}/tornarVip`, {
+        const response = await fetch(`${API_URL}/tornar-vip`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ whatsapp: usuario })
         });
 
         if (response.ok) {
-          // 2. Atualiza o estado local apenas se o back-end confirmar
           localStorage.setItem("acesso_vip", "true");
           localStorage.setItem("perfil_dias", "30");
+
           setIsVip(true);
           setBloqueado(false);
-          alert("✅ Acesso VIP liberado com sucesso no sistema!");
+          // Forçamos um refresh simples para garantir que os dados do localStorage sejam lidos
+          window.location.reload();
         } else {
-          alert("⚠️ Erro ao validar VIP no servidor.");
+          const errorData = await response.json();
+          alert(`⚠️ Erro: ${errorData.erro || "Falha ao validar VIP"}`);
         }
       } catch (error) {
         console.error("Erro ao ativar VIP:", error);
@@ -90,7 +90,6 @@ function App() {
           </header>
 
           <main className="flex-1 flex flex-col items-center justify-center">
-            {/* Círculo de Progresso */}
             <div className="relative w-64 h-64 mb-8 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="128" cy="128" r="110" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-gray-900" />
@@ -109,7 +108,6 @@ function App() {
               </div>
             </div>
 
-            {/* Cards de Info */}
             <div className="grid grid-cols-3 gap-3 w-full mb-10">
               <div className="bg-gray-900/40 border border-gray-800/50 p-4 rounded-[2.5rem] text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso</p>
@@ -149,18 +147,16 @@ function App() {
             <div className="w-16 text-right text-[10px] text-emerald-500 font-bold">{isVip ? "💎 VIP" : "FREE"}</div>
           </header>
           <div className="flex-1 overflow-hidden">
-            {/* ENVIANDO DADOS DE PERFIL PARA O CHAT */}
             <ChatReceitas
               whatsapp={usuario}
               isVip={isVip}
-              perfil={dadosPerfil} // Agora o Chat sabe o peso e altura do usuário
+              perfil={dadosPerfil}
               aoPedirUpgrade={() => setBloqueado(true)}
             />
           </div>
         </div>
       )}
 
-      {/* Modal de Planos */}
       {bloqueado && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center p-4 bg-gray-950/98 backdrop-blur-xl overflow-y-auto">
           <TelaPlanos aoEscolher={() => { }} />
