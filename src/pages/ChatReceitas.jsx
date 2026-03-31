@@ -16,40 +16,26 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         }
     };
 
-    // --- FUNÇÃO PARA ATUALIZAR O DASHBOARD AUTOMATICAMENTE ---
     const extrairEGuardarDados = (texto) => {
         const txt = texto.toLowerCase();
 
-        // 1. Tentar capturar Nome (Ex: "Obrigado, Marina!" ou "Perfeito, Marina!")
+        // 1. Tentar capturar Nome (Melhorado para não pegar nomes errados)
         const regexNome = /(?:obrigado|perfeito|olá|bem-vinda|fala|oi),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]+)/i;
         const matchNome = texto.match(regexNome);
-        if (matchNome && matchNome[1]) {
+        if (matchNome && matchNome[1] && matchNome[1].length > 2) {
+            // Só atualiza o storage se o nome não for genérico
             localStorage.setItem("perfil_nome", matchNome[1]);
         }
 
-        // 2. Tentar capturar Peso (Ex: "Peso: 70kg" ou "seu peso é 70")
+        // 2. Tentar capturar Peso
         const regexPeso = /(?:peso:?|pesando)\s*(\d+)/i;
         const matchPeso = txt.match(regexPeso);
         if (matchPeso) localStorage.setItem("perfil_peso", matchPeso[1]);
 
-        // 3. Tentar capturar Altura (Ex: "Altura: 1.76" ou "1,76m")
+        // 3. Tentar capturar Altura
         const regexAltura = /(?:altura:?)\s*(\d[.,]\d{2})/i;
         const matchAltura = txt.match(regexAltura);
         if (matchAltura) localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
-
-        // 4. Tentar capturar Meta (Ex: "Meta: Secar" ou "foco em emagrecimento")
-        if (txt.includes("emagrecer") || txt.includes("secar") || txt.includes("perder peso")) {
-            localStorage.setItem("perfil_meta", "Secar");
-        } else if (txt.includes("hipertrofia") || txt.includes("ganhar massa")) {
-            localStorage.setItem("perfil_meta", "Ganhar");
-        }
-
-        // 5. Cálculo Dinâmico de "Quanto falta" (Simulação simples baseada no IMC)
-        if (txt.includes("imc")) {
-            // Se a IA calculou o IMC, podemos assumir que ela deu um norte
-            // Aqui você pode definir uma lógica ou apenas salvar um valor fixo de progresso
-            localStorage.setItem("perfil_faltam", "7.5");
-        }
     };
 
     useEffect(() => {
@@ -69,7 +55,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             const historicoFormatado = dados.map((msg, index) => {
                 let texto = msg.content || "";
 
-                // Sempre que carregar o histórico, tenta atualizar o dashboard com a última info
                 if (msg.role === "assistant") extrairEGuardarDados(texto);
 
                 if (isVip) {
@@ -91,10 +76,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             setMostrarBotãoUpgrade(detectouBloqueioNoHistorico);
             setMensagens(historicoFormatado);
 
-            if (isVip && detectouBloqueioNoHistorico) {
-                onEnviarMensagem("Obrigado! Agora mande minha dieta completa sem bloqueios por favor.");
-            }
-
         } catch (error) {
             console.error("Erro ao carregar histórico:", error);
         } finally {
@@ -106,6 +87,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         carregarHistorico();
     }, [whatsapp, isVip]);
 
+    // --- ESSA É A FUNÇÃO QUE ALTERAMOS PARA ENVIAR O NOME REAL ---
     const onEnviarMensagem = async (textoDigitado) => {
         if (!textoDigitado.trim()) return;
 
@@ -119,14 +101,16 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         setLoading(true);
 
         try {
+            // Pegamos o nome que está na Home (localStorage) para enviar ao Back-end
+            const nomeReal = localStorage.getItem("perfil_nome") || "";
+
             const response = await api.post("/receitas/perguntar", {
                 whatsapp: whatsapp,
-                mensagemAtual: textoDigitado
+                mensagemAtual: textoDigitado,
+                nomeNoPerfil: nomeReal // <-- AQUI ENVIAMOS O NOME CORRETO
             });
 
             const respostaTexto = response.data.resposta || "";
-
-            // ATUALIZA OS DADOS NO STORAGE ASSIM QUE O BOT RESPONDE
             extrairEGuardarDados(respostaTexto);
 
             const temTextoDeBloqueio = respostaTexto.toUpperCase().includes("BLOQUEADO");
@@ -137,13 +121,11 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                 setMostrarBotãoUpgrade(false);
             }
 
-            const novaMensagemBot = {
+            setMensagens((prev) => [...prev, {
                 id: Date.now() + 1,
                 texto: respostaTexto,
                 remetente: "bot"
-            };
-
-            setMensagens((prev) => [...prev, novaMensagemBot]);
+            }]);
 
         } catch (error) {
             console.error("Erro ao enviar mensagem:", error);
@@ -159,8 +141,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
     return (
         <div className="flex flex-col h-full font-sans overflow-hidden bg-slate-900">
-            {/* Removi o Header fixo interno pois agora o App.jsx já prove um header superior melhor */}
-
             <main className="flex-1 overflow-hidden bg-slate-100 flex flex-col relative">
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
 
