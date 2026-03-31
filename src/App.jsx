@@ -10,7 +10,6 @@ function App() {
   const [bloqueado, setBloqueado] = useState(false);
   const [codigoInput, setCodigoInput] = useState("");
 
-  // 1. TRANSFORMAMOS EM ESTADO PARA O REACT PODER ATUALIZAR A TELA
   const [perfil, setPerfil] = useState({
     nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
     peso: localStorage.getItem("perfil_peso") || "100",
@@ -20,9 +19,8 @@ function App() {
     diasRestantes: localStorage.getItem("perfil_dias") || "0"
   });
 
-  const API_URL = "https://api-backend-treino-fit.onrender.com/api/receitas";
+  const API_URL = "https://api-backend-treino-fit.onrender.com/api";
 
-  // 2. FUNÇÃO QUE ATUALIZA O PERFIL (Será chamada pelo Chat e pela Home)
   const atualizarEstadoPerfil = () => {
     setPerfil({
       nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
@@ -34,27 +32,25 @@ function App() {
     });
   };
 
-  // 3. EFEITO PARA BUSCAR NO BANCO DE DADOS ASSIM QUE LOGAR
   useEffect(() => {
     if (usuario) {
       const sincronizarComBanco = async () => {
         try {
-          // Ajuste esta URL se a sua rota de buscar usuário for diferente
-          const response = await fetch(`${API_URL.replace('/receitas', '')}/usuarios/${usuario}`);
+          const response = await fetch(`${API_URL}/usuarios/${usuario}`);
           if (response.ok) {
             const dados = await response.json();
             if (dados) {
-              localStorage.setItem("perfil_nome", dados.nome || "");
-              localStorage.setItem("perfil_peso", dados.peso || "");
-              localStorage.setItem("perfil_altura", dados.altura || "");
+              localStorage.setItem("perfil_nome", dados.nome || "Guerreiro(a)");
+              localStorage.setItem("perfil_peso", dados.peso || "100");
+              localStorage.setItem("perfil_altura", dados.altura || "1.82");
               localStorage.setItem("acesso_vip", dados.pago ? "true" : "false");
               setIsVip(dados.pago);
               atualizarEstadoPerfil();
             }
           }
-        } catch (error) {
-          console.error("Erro técnico ao liberar VIP:", error);
-          alert("Falha na comunicação com o servidor.");
+        } catch (err) {
+          // CORREÇÃO: Usando a variável para o ESLint parar de reclamar
+          console.error("Erro na sincronização:", err.message);
         }
       };
       sincronizarComBanco();
@@ -67,133 +63,111 @@ function App() {
     setAbaAtiva("home");
   };
 
-  const liberarComCodigo = async () => {
-    const CODIGO_CORRETO = "TREINOFIT2026";
-    if (codigoInput.trim().toUpperCase() === CODIGO_CORRETO) {
-      try {
-        const response = await fetch(`${API_URL}/tornar-vip`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ whatsapp: usuario })
-        });
-        if (response.ok) {
-          localStorage.setItem("acesso_vip", "true");
-          localStorage.setItem("perfil_dias", "30");
-          setIsVip(true);
-          setBloqueado(false);
-          atualizarEstadoPerfil(); // Atualiza sem dar reload na página toda
-        }
-      } catch (error) {
-        // Usando a variável 'error' para o ESLint parar de reclamar
-        console.log("Perfil ainda não criado ou erro de conexão:", error.message);
-      }
-    }
+  const handleSair = () => {
+    localStorage.clear();
+    window.location.reload();
   };
 
   if (!usuario) return <Login aoLogar={handleLogin} />;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans overflow-x-hidden">
+    <div className="fixed inset-0 bg-gray-950 text-white font-sans overflow-hidden flex flex-col">
 
       {abaAtiva === "home" && (
-        <div className="max-w-md mx-auto min-h-screen p-6 flex flex-col animate-in fade-in duration-700">
-          <header className="flex justify-between items-center mt-4 mb-10">
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+          <header className="w-full max-w-md flex justify-between items-center mt-4 mb-10">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)] text-black font-black">FIT</div>
-              <div className="flex flex-col">
-                <p className="text-[9px] text-gray-500 uppercase font-black tracking-[0.2em] leading-none mb-1">Membro Fit</p>
-                <h2 className="text-xl font-black italic tracking-tighter uppercase text-white">{perfil.nome}</h2>
+              <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-black font-black">FIT</div>
+              <div>
+                <p className="text-[9px] text-gray-500 uppercase font-black">Membro Fit</p>
+                <h2 className="text-xl font-black uppercase">{perfil.nome}</h2>
               </div>
             </div>
-
-            <div className="flex flex-col items-end">
-              <div className="bg-gray-900/80 border border-gray-800 rounded-2xl px-4 py-2 flex items-baseline space-x-1 shadow-lg">
+            <div className="text-right">
+              <div className="bg-gray-900 px-4 py-2 rounded-2xl border border-gray-800">
                 <span className="text-2xl font-black text-emerald-500">{perfil.diasRestantes}</span>
-                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Dias</span>
+                <span className="text-[9px] text-gray-500 uppercase ml-1">Dias</span>
               </div>
-              <button onClick={() => setBloqueado(true)} className="mt-1 text-[10px] font-black text-orange-500 uppercase tracking-tighter">
-                {isVip ? "Plano Ativo 💎" : "Renovar Plano ⚡"}
+              <button onClick={() => setBloqueado(true)} className="text-[10px] text-orange-500 uppercase font-bold mt-1">
+                {isVip ? "💎 VIP ATIVO" : "⚡ VIRAR VIP"}
               </button>
             </div>
           </header>
 
-          <main className="flex-1 flex flex-col items-center justify-center">
-            {/* Círculo de Progresso */}
-            <div className="relative w-64 h-64 mb-8 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle cx="128" cy="128" r="110" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-gray-900" />
-                <circle
-                  cx="128" cy="128" r="110" stroke="currentColor" strokeWidth="12" fill="transparent"
-                  strokeDasharray="691"
-                  strokeDashoffset={perfil.faltam === "0" ? "691" : "450"}
-                  strokeLinecap="round"
-                  className="text-emerald-500 transition-all duration-1000"
-                />
+          <main className="w-full max-w-md flex-1 flex flex-col items-center">
+            <div className="relative w-60 h-60 mb-8 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90">
+                <circle cx="120" cy="120" r="100" stroke="#111827" strokeWidth="10" fill="transparent" />
+                <circle cx="120" cy="120" r="100" stroke="#10b981" strokeWidth="12" fill="transparent"
+                  strokeDasharray="628" strokeDashoffset="400" strokeLinecap="round" />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mb-1">Faltam</p>
-                <h3 className="text-6xl font-black tracking-tighter">{perfil.faltam}</h3>
-                <p className="text-lg font-bold text-emerald-500 uppercase tracking-tighter">kg para a Meta</p>
+                <p className="text-[10px] text-gray-500 font-black uppercase">Faltam</p>
+                <h3 className="text-5xl font-black">{perfil.faltam}</h3>
+                <p className="text-sm font-bold text-emerald-500 uppercase">kg para a Meta</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 w-full mb-10">
-              <div className="bg-gray-900/40 border border-gray-800/50 p-4 rounded-[2.5rem] text-center">
+            <div className="grid grid-cols-3 gap-3 w-full mb-8">
+              <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso</p>
                 <p className="text-sm font-bold">{perfil.peso}kg</p>
               </div>
-              <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-[2.5rem] text-center">
-                <p className="text-[8px] text-emerald-500/70 uppercase font-black mb-1">Altura</p>
-                <p className="text-sm font-bold text-emerald-400">{perfil.altura}m</p>
+              <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
+                <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Altura</p>
+                <p className="text-sm font-bold">{perfil.altura}m</p>
               </div>
-              <div className="bg-gray-900/40 border border-gray-800/50 p-4 rounded-[2.5rem] text-center">
+              <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Meta</p>
-                <p className="text-sm font-bold text-white uppercase italic">{perfil.meta}</p>
+                <p className="text-sm font-bold italic uppercase">{perfil.meta}</p>
               </div>
             </div>
 
-            <button onClick={() => setAbaAtiva("chat")} className="w-full bg-emerald-500 text-black font-black py-6 rounded-[2.5rem] shadow-xl flex items-center justify-center space-x-4 uppercase text-sm">
-              <span>💬</span>
-              <span>Entrar no Chat Nutri</span>
+            <button onClick={() => setAbaAtiva("chat")} className="w-full bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-xl uppercase text-sm mb-6">
+              💬 Abrir Chat Nutri
+            </button>
+
+            <button onClick={handleSair} className="text-[10px] text-gray-600 font-black uppercase tracking-widest hover:text-red-500 transition-colors">
+              [ Sair do Perfil ]
             </button>
           </main>
         </div>
       )}
 
       {abaAtiva === "chat" && (
-        <div className="h-screen flex flex-col bg-gray-950">
+        <div className="flex-1 flex flex-col bg-gray-950 overflow-hidden">
           <header className="p-4 bg-gray-900 border-b border-gray-800 flex items-center justify-between">
             <button onClick={() => { setAbaAtiva("home"); atualizarEstadoPerfil(); }} className="bg-emerald-500 text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase">
-              🏠 Início
+              🏠 Voltar
             </button>
-            <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">IA Treino Fit</span>
-            <div className="w-16 text-right text-[10px] text-emerald-500 font-bold">{isVip ? "💎 VIP" : "FREE"}</div>
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">Ana Nutri</span>
+            <div className="text-[10px] text-emerald-500 font-bold">{isVip ? "💎 VIP" : "FREE"}</div>
           </header>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 relative overflow-hidden">
             <ChatReceitas
               whatsapp={usuario}
               isVip={isVip}
               perfil={perfil}
               aoPedirUpgrade={() => setBloqueado(true)}
-              aoAtualizarPerfil={atualizarEstadoPerfil} // PASSANDO A FUNÇÃO PARA O CHAT
+              aoAtualizarPerfil={atualizarEstadoPerfil}
             />
           </div>
         </div>
       )}
 
       {bloqueado && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center p-4 bg-gray-950/98 backdrop-blur-xl overflow-y-auto">
+        <div className="fixed inset-0 z-[200] bg-gray-950 p-4 overflow-y-auto flex flex-col items-center">
           <TelaPlanos aoEscolher={() => { }} />
-          <div className="mt-10 w-full max-w-xs bg-gray-900 p-8 rounded-[3rem] border border-gray-800 text-center">
+          <div className="w-full max-w-xs mt-6">
             <input
               type="text"
               placeholder="CÓDIGO VIP..."
-              className="bg-gray-950 border-2 border-gray-800 p-4 rounded-2xl w-full text-center text-white mb-6 outline-none"
+              className="w-full bg-gray-900 border border-gray-800 p-4 rounded-2xl text-center mb-4"
               value={codigoInput}
               onChange={(e) => setCodigoInput(e.target.value)}
             />
-            <button onClick={liberarComCodigo} className="w-full bg-emerald-500 text-black font-black py-5 rounded-2xl uppercase text-xs">Liberar VIP</button>
-            <button onClick={() => setBloqueado(false)} className="mt-4 text-gray-500 text-[10px] uppercase underline">Sair</button>
+            <button className="w-full bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase">Ativar VIP</button>
+            <button onClick={() => setBloqueado(false)} className="w-full text-gray-500 text-xs mt-4 uppercase">Fechar</button>
           </div>
         </div>
       )}
