@@ -18,21 +18,16 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
     const extrairEGuardarDados = (texto) => {
         const txt = texto.toLowerCase();
-
-        // 1. Tentar capturar Nome (Melhorado para não pegar nomes errados)
-        const regexNome = /(?:obrigado|perfeito|olá|bem-vinda|fala|oi),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]+)/i;
+        const regexNome = /(?:obrigado|perfeito|olá|bem-vinda|fala|oi|entendi|certo),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]+)/i;
         const matchNome = texto.match(regexNome);
         if (matchNome && matchNome[1] && matchNome[1].length > 2) {
-            // Só atualiza o storage se o nome não for genérico
             localStorage.setItem("perfil_nome", matchNome[1]);
         }
 
-        // 2. Tentar capturar Peso
         const regexPeso = /(?:peso:?|pesando)\s*(\d+)/i;
         const matchPeso = txt.match(regexPeso);
         if (matchPeso) localStorage.setItem("perfil_peso", matchPeso[1]);
 
-        // 3. Tentar capturar Altura
         const regexAltura = /(?:altura:?)\s*(\d[.,]\d{2})/i;
         const matchAltura = txt.match(regexAltura);
         if (matchAltura) localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
@@ -57,11 +52,15 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
                 if (msg.role === "assistant") extrairEGuardarDados(texto);
 
+                // --- AJUSTE PARA USUÁRIO VIP ---
                 if (isVip) {
-                    texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Liberado)");
-                    texto = texto.replace(/Para ver o resto do seu plano, clique no BOTÃO LARANJA.*/gi, "Aproveite sua dieta completa abaixo! 💪");
+                    // Remove as tags de bloqueio e as frases de venda das mensagens antigas
+                    texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Conteúdo Liberado)");
+                    texto = texto.replace(/Para visualizar o restante do seu plano.*/gi, "Plano VIP Ativado! 💪");
+                    texto = texto.replace(/clique no BOTÃO LARANJA.*/gi, "Aproveite seu acesso ilimitado.");
                 }
 
+                // SÓ ativa o estado de bloqueio se NÃO for VIP e a mensagem tiver a palavra chave
                 if (!isVip && texto.toUpperCase().includes("BLOQUEADO")) {
                     detectouBloqueioNoHistorico = true;
                 }
@@ -73,7 +72,8 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                 };
             });
 
-            setMostrarBotãoUpgrade(detectouBloqueioNoHistorico);
+            // Se for VIP, forçamos o botão a sumir, independente do que tem no texto
+            setMostrarBotãoUpgrade(!isVip && detectouBloqueioNoHistorico);
             setMensagens(historicoFormatado);
 
         } catch (error) {
@@ -87,7 +87,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         carregarHistorico();
     }, [whatsapp, isVip]);
 
-    // --- ESSA É A FUNÇÃO QUE ALTERAMOS PARA ENVIAR O NOME REAL ---
     const onEnviarMensagem = async (textoDigitado) => {
         if (!textoDigitado.trim()) return;
 
@@ -101,13 +100,12 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
         setLoading(true);
 
         try {
-            // Pegamos o nome que está na Home (localStorage) para enviar ao Back-end
             const nomeReal = localStorage.getItem("perfil_nome") || "";
 
             const response = await api.post("/receitas/perguntar", {
                 whatsapp: whatsapp,
                 mensagemAtual: textoDigitado,
-                nomeNoPerfil: nomeReal // <-- AQUI ENVIAMOS O NOME CORRETO
+                nomeNoPerfil: nomeReal
             });
 
             const respostaTexto = response.data.resposta || "";
@@ -115,6 +113,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
             const temTextoDeBloqueio = respostaTexto.toUpperCase().includes("BLOQUEADO");
 
+            // Se o usuário é VIP, nunca mostramos o botão, mesmo que a IA erre e mande a tag
             if (!isVip && temTextoDeBloqueio) {
                 setMostrarBotãoUpgrade(true);
             } else {
@@ -123,7 +122,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
             setMensagens((prev) => [...prev, {
                 id: Date.now() + 1,
-                texto: respostaTexto,
+                texto: isVip ? respostaTexto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "").replace(/Para visualizar o restante.*/gi, "") : respostaTexto,
                 remetente: "bot"
             }]);
 
