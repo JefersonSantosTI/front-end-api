@@ -21,7 +21,11 @@ function App() {
 
   const API_URL = "https://api-backend-treino-fit.onrender.com/api";
 
+  // ATUALIZADO: Agora sincroniza o VIP também!
   const atualizarEstadoPerfil = () => {
+    const vipNoStorage = localStorage.getItem("acesso_vip") === "true";
+    setIsVip(vipNoStorage); // Força o selo a mudar de FREE para VIP
+
     setPerfil({
       nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
       peso: localStorage.getItem("perfil_peso") || "100",
@@ -44,12 +48,13 @@ function App() {
               localStorage.setItem("perfil_peso", dados.peso || "100");
               localStorage.setItem("perfil_altura", dados.altura || "1.82");
               localStorage.setItem("acesso_vip", dados.pago ? "true" : "false");
+
+              // Atualiza os estados locais imediatamente após o fetch
               setIsVip(dados.pago);
               atualizarEstadoPerfil();
             }
           }
         } catch (err) {
-          // CORREÇÃO: Usando a variável para o ESLint parar de reclamar
           console.error("Erro na sincronização:", err.message);
         }
       };
@@ -88,7 +93,8 @@ function App() {
                 <span className="text-2xl font-black text-emerald-500">{perfil.diasRestantes}</span>
                 <span className="text-[9px] text-gray-500 uppercase ml-1">Dias</span>
               </div>
-              <button onClick={() => setBloqueado(true)} className="text-[10px] text-orange-500 uppercase font-bold mt-1">
+              {/* Selo VIP dinâmico */}
+              <button onClick={() => setBloqueado(true)} className={`text-[10px] uppercase font-bold mt-1 ${isVip ? "text-emerald-400" : "text-orange-500"}`}>
                 {isVip ? "💎 VIP ATIVO" : "⚡ VIRAR VIP"}
               </button>
             </div>
