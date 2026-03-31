@@ -3,7 +3,8 @@ import ListaMessagens from "../components/ListaMessagens"
 import ChatBox from "../components/ChatBox"
 import { api } from "../services/api"
 
-const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
+// Adicionei 'aoAtualizarPerfil' como uma prop para avisar a Home
+const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) => {
     const [loading, setLoading] = useState(false)
     const [mensagens, setMensagens] = useState([])
     const [mostrarBotãoUpgrade, setMostrarBotãoUpgrade] = useState(false)
@@ -18,19 +19,36 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
     const extrairEGuardarDados = (texto) => {
         const txt = texto.toLowerCase();
+        let mudou = false;
+
+        // 1. EXTRAÇÃO DE NOME
         const regexNome = /(?:obrigado|perfeito|olá|bem-vinda|fala|oi|entendi|certo),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]+)/i;
         const matchNome = texto.match(regexNome);
         if (matchNome && matchNome[1] && matchNome[1].length > 2) {
             localStorage.setItem("perfil_nome", matchNome[1]);
+            mudou = true;
         }
 
-        const regexPeso = /(?:peso:?|pesando)\s*(\d+)/i;
+        // 2. EXTRAÇÃO DE PESO (Suporta 97,8 ou 97.8)
+        const regexPeso = /(?:peso:?|pesando)\s*(\d+[.,]?\d*)/i;
         const matchPeso = txt.match(regexPeso);
-        if (matchPeso) localStorage.setItem("perfil_peso", matchPeso[1]);
+        if (matchPeso) {
+            localStorage.setItem("perfil_peso", matchPeso[1].replace(',', '.'));
+            mudou = true;
+        }
 
+        // 3. EXTRAÇÃO DE ALTURA
         const regexAltura = /(?:altura:?)\s*(\d[.,]\d{2})/i;
         const matchAltura = txt.match(regexAltura);
-        if (matchAltura) localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
+        if (matchAltura) {
+            localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
+            mudou = true;
+        }
+
+        // Se detectamos novos dados, avisamos a Home (se a função existir)
+        if (mudou && typeof aoAtualizarPerfil === "function") {
+            aoAtualizarPerfil();
+        }
     };
 
     useEffect(() => {
@@ -52,15 +70,12 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
 
                 if (msg.role === "assistant") extrairEGuardarDados(texto);
 
-                // --- AJUSTE PARA USUÁRIO VIP ---
                 if (isVip) {
-                    // Remove as tags de bloqueio e as frases de venda das mensagens antigas
                     texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Conteúdo Liberado)");
                     texto = texto.replace(/Para visualizar o restante do seu plano.*/gi, "Plano VIP Ativado! 💪");
                     texto = texto.replace(/clique no BOTÃO LARANJA.*/gi, "Aproveite seu acesso ilimitado.");
                 }
 
-                // SÓ ativa o estado de bloqueio se NÃO for VIP e a mensagem tiver a palavra chave
                 if (!isVip && texto.toUpperCase().includes("BLOQUEADO")) {
                     detectouBloqueioNoHistorico = true;
                 }
@@ -72,7 +87,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
                 };
             });
 
-            // Se for VIP, forçamos o botão a sumir, independente do que tem no texto
             setMostrarBotãoUpgrade(!isVip && detectouBloqueioNoHistorico);
             setMensagens(historicoFormatado);
 
@@ -109,11 +123,12 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade }) => {
             });
 
             const respostaTexto = response.data.resposta || "";
+
+            // Aqui mineramos os dados da resposta da IA para atualizar a Home
             extrairEGuardarDados(respostaTexto);
 
             const temTextoDeBloqueio = respostaTexto.toUpperCase().includes("BLOQUEADO");
 
-            // Se o usuário é VIP, nunca mostramos o botão, mesmo que a IA erre e mande a tag
             if (!isVip && temTextoDeBloqueio) {
                 setMostrarBotãoUpgrade(true);
             } else {
