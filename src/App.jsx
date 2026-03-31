@@ -12,60 +12,84 @@ function App() {
 
   const [perfil, setPerfil] = useState({
     nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
-    peso: localStorage.getItem("perfil_peso") || "100",
-    altura: localStorage.getItem("perfil_altura") || "1.82",
-    meta: localStorage.getItem("perfil_meta") || "Emagrecimento",
+    peso: localStorage.getItem("perfil_peso") || "0",
+    altura: localStorage.getItem("perfil_altura") || "0",
+    meta: localStorage.getItem("perfil_meta") || "Defina sua meta",
     faltam: localStorage.getItem("perfil_faltam") || "0",
     diasRestantes: localStorage.getItem("perfil_dias") || "0"
   });
 
   const API_URL = "https://api-backend-treino-fit.onrender.com/api";
 
-  // ATUALIZADO: Agora sincroniza o VIP também!
-  const atualizarEstadoPerfil = () => {
-    const vipNoStorage = localStorage.getItem("acesso_vip") === "true";
-    setIsVip(vipNoStorage); // Força o selo a mudar de FREE para VIP
-
+  // Função para ler o LocalStorage e atualizar o estado visual
+  const sincronizarEstadosLocais = () => {
+    setIsVip(localStorage.getItem("acesso_vip") === "true");
     setPerfil({
       nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
-      peso: localStorage.getItem("perfil_peso") || "100",
-      altura: localStorage.getItem("perfil_altura") || "1.82",
-      meta: localStorage.getItem("perfil_meta") || "Emagrecimento",
+      peso: localStorage.getItem("perfil_peso") || "0",
+      altura: localStorage.getItem("perfil_altura") || "0",
+      meta: localStorage.getItem("perfil_meta") || "Defina sua meta",
       faltam: localStorage.getItem("perfil_faltam") || "0",
       diasRestantes: localStorage.getItem("perfil_dias") || "0"
     });
   };
 
+  // Sincroniza com o banco de dados ao carregar ou mudar de usuário
   useEffect(() => {
     if (usuario) {
-      const sincronizarComBanco = async () => {
+      const puxarDadosDoBanco = async () => {
         try {
-          const response = await fetch(`${API_URL}/usuarios/${usuario}`);
+          const whatsLimpo = String(usuario).replace(/\D/g, "");
+          const response = await fetch(`${API_URL}/usuarios/${whatsLimpo}`);
           if (response.ok) {
             const dados = await response.json();
-            if (dados) {
-              localStorage.setItem("perfil_nome", dados.nome || "Guerreiro(a)");
-              localStorage.setItem("perfil_peso", dados.peso || "100");
-              localStorage.setItem("perfil_altura", dados.altura || "1.82");
-              localStorage.setItem("acesso_vip", dados.pago ? "true" : "false");
+            // Salva tudo no LocalStorage para persistência offline rápida
+            localStorage.setItem("perfil_nome", dados.nome || "Guerreiro(a)");
+            localStorage.setItem("perfil_peso", dados.peso || "0");
+            localStorage.setItem("perfil_altura", dados.altura || "0");
+            localStorage.setItem("perfil_meta", dados.meta || "Emagrecimento");
+            localStorage.setItem("acesso_vip", dados.pago ? "true" : "false");
 
-              // Atualiza os estados locais imediatamente após o fetch
-              setIsVip(dados.pago);
-              atualizarEstadoPerfil();
-            }
+            sincronizarEstadosLocais();
           }
         } catch (err) {
-          console.error("Erro na sincronização:", err.message);
+          console.error("Erro ao conectar com API:", err);
         }
       };
-      sincronizarComBanco();
+      puxarDadosDoBanco();
     }
   }, [usuario]);
 
+  const handleAtivarVip = async () => {
+    if (!codigoInput) return alert("Por favor, digite o código.");
+
+    try {
+      const response = await fetch(`${API_URL}/usuarios/ativar-vip`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp: usuario, codigo: codigoInput })
+      });
+
+      const resultado = await response.json();
+
+      if (response.ok) {
+        alert("💎 Parabéns! Seu acesso VIP foi liberado.");
+        localStorage.setItem("acesso_vip", "true");
+        setIsVip(true);
+        setBloqueado(false);
+        setCodigoInput("");
+      } else {
+        alert(resultado.mensagem || "Erro ao ativar código.");
+      }
+    } catch {
+      console.error("Erro de conexão. Verifique se o backend está online.");
+    }
+  };
+
   const handleLogin = (whatsapp) => {
-    localStorage.setItem("usuario_whatsapp", whatsapp);
-    setUsuario(whatsapp);
-    setAbaAtiva("home");
+    const limpo = String(whatsapp).replace(/\D/g, "");
+    localStorage.setItem("usuario_whatsapp", limpo);
+    setUsuario(limpo);
   };
 
   const handleSair = () => {
@@ -76,47 +100,38 @@ function App() {
   if (!usuario) return <Login aoLogar={handleLogin} />;
 
   return (
-    <div className="fixed inset-0 bg-gray-950 text-white font-sans overflow-hidden flex flex-col">
-
+    <div className="fixed inset-0 bg-gray-950 text-white flex flex-col overflow-hidden">
       {abaAtiva === "home" && (
         <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
-          <header className="w-full max-w-md flex justify-between items-center mt-4 mb-10">
+          <header className="w-full max-w-md flex justify-between items-center mt-4 mb-8">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-black font-black">FIT</div>
               <div>
-                <p className="text-[9px] text-gray-500 uppercase font-black">Membro Fit</p>
+                <p className="text-[9px] text-gray-500 uppercase font-black">Plano {isVip ? 'Premium' : 'Free'}</p>
                 <h2 className="text-xl font-black uppercase">{perfil.nome}</h2>
               </div>
             </div>
-            <div className="text-right">
-              <div className="bg-gray-900 px-4 py-2 rounded-2xl border border-gray-800">
-                <span className="text-2xl font-black text-emerald-500">{perfil.diasRestantes}</span>
-                <span className="text-[9px] text-gray-500 uppercase ml-1">Dias</span>
-              </div>
-              {/* Selo VIP dinâmico */}
-              <button onClick={() => setBloqueado(true)} className={`text-[10px] uppercase font-bold mt-1 ${isVip ? "text-emerald-400" : "text-orange-500"}`}>
-                {isVip ? "💎 VIP ATIVO" : "⚡ VIRAR VIP"}
-              </button>
-            </div>
+            <button onClick={() => setBloqueado(true)} className={`px-4 py-2 rounded-2xl border ${isVip ? 'border-emerald-500 text-emerald-500' : 'border-orange-500 text-orange-500'} text-[10px] font-black uppercase`}>
+              {isVip ? "💎 VIP ATIVO" : "⚡ VIRAR VIP"}
+            </button>
           </header>
 
           <main className="w-full max-w-md flex-1 flex flex-col items-center">
-            <div className="relative w-60 h-60 mb-8 flex items-center justify-center">
+            {/* Gráfico Circular Simples */}
+            <div className="relative w-56 h-56 mb-8 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90">
-                <circle cx="120" cy="120" r="100" stroke="#111827" strokeWidth="10" fill="transparent" />
-                <circle cx="120" cy="120" r="100" stroke="#10b981" strokeWidth="12" fill="transparent"
-                  strokeDasharray="628" strokeDashoffset="400" strokeLinecap="round" />
+                <circle cx="112" cy="112" r="100" stroke="#111827" strokeWidth="12" fill="transparent" />
+                <circle cx="112" cy="112" r="100" stroke="#10b981" strokeWidth="12" fill="transparent" strokeDasharray="628" strokeDashoffset="450" strokeLinecap="round" />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] text-gray-500 font-black uppercase">Faltam</p>
-                <h3 className="text-5xl font-black">{perfil.faltam}</h3>
-                <p className="text-sm font-bold text-emerald-500 uppercase">kg para a Meta</p>
+              <div className="absolute flex flex-col items-center">
+                <span className="text-4xl font-black">{perfil.faltam}</span>
+                <span className="text-[10px] text-emerald-500 font-bold uppercase">kg para a meta</span>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 w-full mb-8">
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
-                <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso</p>
+                <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso Atual</p>
                 <p className="text-sm font-bold">{perfil.peso}kg</p>
               </div>
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
@@ -124,56 +139,57 @@ function App() {
                 <p className="text-sm font-bold">{perfil.altura}m</p>
               </div>
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
-                <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Meta</p>
-                <p className="text-sm font-bold italic uppercase">{perfil.meta}</p>
+                <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Foco</p>
+                <p className="text-sm font-bold uppercase text-emerald-400">{perfil.meta}</p>
               </div>
             </div>
 
-            <button onClick={() => setAbaAtiva("chat")} className="w-full bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-xl uppercase text-sm mb-6">
-              💬 Abrir Chat Nutri
+            <button onClick={() => setAbaAtiva("chat")} className="w-full bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm mb-6 hover:scale-[1.02] transition-transform">
+              💬 Abrir Chat Nutri AI
             </button>
 
-            <button onClick={handleSair} className="text-[10px] text-gray-600 font-black uppercase tracking-widest hover:text-red-500 transition-colors">
-              [ Sair do Perfil ]
+            <button onClick={handleSair} className="text-[10px] text-gray-600 font-black uppercase tracking-widest hover:text-red-500">
+              [ Encerrar Sessão ]
             </button>
           </main>
         </div>
       )}
 
       {abaAtiva === "chat" && (
-        <div className="flex-1 flex flex-col bg-gray-950 overflow-hidden">
-          <header className="p-4 bg-gray-900 border-b border-gray-800 flex items-center justify-between">
-            <button onClick={() => { setAbaAtiva("home"); atualizarEstadoPerfil(); }} className="bg-emerald-500 text-black px-4 py-2 rounded-xl font-black text-[10px] uppercase">
-              🏠 Voltar
-            </button>
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">Ana Nutri</span>
-            <div className="text-[10px] text-emerald-500 font-bold">{isVip ? "💎 VIP" : "FREE"}</div>
+        <div className="flex-1 flex flex-col">
+          <header className="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center">
+            <button onClick={() => setAbaAtiva("home")} className="text-emerald-500 font-black text-xs uppercase">← Voltar</button>
+            <span className="text-[10px] font-black uppercase">Ana Nutri Fit</span>
+            <div className="w-8 h-8 bg-emerald-500 rounded-full" />
           </header>
-          <div className="flex-1 relative overflow-hidden">
-            <ChatReceitas
-              whatsapp={usuario}
-              isVip={isVip}
-              perfil={perfil}
-              aoPedirUpgrade={() => setBloqueado(true)}
-              aoAtualizarPerfil={atualizarEstadoPerfil}
-            />
-          </div>
+          <ChatReceitas
+            whatsapp={usuario}
+            isVip={isVip}
+            perfil={perfil}
+            aoPedirUpgrade={() => setBloqueado(true)}
+          />
         </div>
       )}
 
+      {/* MODAL DE ATIVAÇÃO VIP */}
       {bloqueado && (
-        <div className="fixed inset-0 z-[200] bg-gray-950 p-4 overflow-y-auto flex flex-col items-center">
+        <div className="fixed inset-0 z-[500] bg-gray-950 flex flex-col items-center p-6 overflow-y-auto">
           <TelaPlanos aoEscolher={() => { }} />
-          <div className="w-full max-w-xs mt-6">
+          <div className="w-full max-w-xs mt-8 bg-gray-900 p-6 rounded-[2.5rem] border border-gray-800">
+            <h3 className="text-center font-black text-sm mb-4 uppercase">Já possui um código?</h3>
             <input
               type="text"
-              placeholder="CÓDIGO VIP..."
-              className="w-full bg-gray-900 border border-gray-800 p-4 rounded-2xl text-center mb-4"
+              placeholder="DIGITE SEU CÓDIGO..."
+              className="w-full bg-black border border-gray-800 p-4 rounded-2xl text-center mb-4 text-emerald-500 font-bold"
               value={codigoInput}
               onChange={(e) => setCodigoInput(e.target.value)}
             />
-            <button className="w-full bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase">Ativar VIP</button>
-            <button onClick={() => setBloqueado(false)} className="w-full text-gray-500 text-xs mt-4 uppercase">Fechar</button>
+            <button onClick={handleAtivarVip} className="w-full bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase shadow-emerald-500/20 shadow-lg">
+              Validar Acesso
+            </button>
+            <button onClick={() => setBloqueado(false)} className="w-full text-gray-500 text-[10px] mt-6 font-black uppercase tracking-widest">
+              Fechar
+            </button>
           </div>
         </div>
       )}
