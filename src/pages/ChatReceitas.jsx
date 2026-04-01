@@ -145,63 +145,69 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     };
 
     return (
-        <div className="flex flex-col h-screen font-sans overflow-hidden bg-slate-900">
-            {/* 1. O main precisa ser 'relative' e 'overflow-hidden' para conter o scroll absoluto */}
-            <main className="flex-1 bg-slate-100 relative overflow-hidden">
+        <div className="flex flex-col h-screen font-sans overflow-hidden bg-[#f0f2f5]">
+            {/* Header Estilo WhatsApp (Opcional, mas dá o toque profissional) */}
+            <header className="bg-[#00a884] py-3 px-4 flex items-center shadow-sm z-20">
+                <div className="w-10 h-10 rounded-full bg-gray-300 mr-3 flex-shrink-0 overflow-hidden">
+                    <img src="https://via.placeholder.com/40" alt="Bot" />
+                </div>
+                <div>
+                    <h2 className="text-white font-medium leading-none">Nutricionista IA</h2>
+                    <span className="text-[11px] text-emerald-100">online</span>
+                </div>
+            </header>
 
-                {/* Background Texture */}
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+            <main className="flex-1 relative overflow-hidden bg-[#e5ddd5]">
+                {/* Papel de parede sutil do WhatsApp */}
+                <div
+                    className="absolute inset-0 opacity-[0.06] pointer-events-none"
+                    style={{ backgroundImage: `url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')` }}
+                />
 
-                {/* 2. A div de scroll DEVE ser 'absolute inset-0' para o overflow-y-auto funcionar corretamente */}
-                <div className="absolute inset-0 overflow-y-auto p-4 z-10 custom-scrollbar flex flex-col">
-                    <div className="max-w-4xl mx-auto w-full pb-10">
+                <div className="absolute inset-0 overflow-y-auto px-[5%] py-4 z-10 custom-scrollbar flex flex-col">
+                    <div className="max-w-[800px] mx-auto w-full pb-10">
 
                         <ListaMessagens mensagens={mensagens} loading={loading} />
 
                         {mostrarBotãoUpgrade && !isVip && (
-                            <div className="w-full mt-6 mb-12 animate-bounce-slow">
+                            <div className="w-full mt-6 mb-12 flex justify-center">
                                 <button
                                     onClick={aoPedirUpgrade}
-                                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black py-5 rounded-2xl shadow-lg border-b-4 border-red-800 active:border-b-0 active:translate-y-1 transition-all uppercase"
+                                    className="w-full max-w-md bg-[#00a884] hover:bg-[#008f70] text-white font-bold py-4 rounded-lg shadow-md transition-all uppercase tracking-wide"
                                 >
-                                    🔓 LIBERAR DIETA COMPLETA AGORA
+                                    🔓 Liberar Dieta Completa
                                 </button>
-                                <p className="text-center text-slate-500 text-[11px] mt-3 uppercase tracking-widest font-bold">
-                                    Acesso imediato ao almoço e jantar
-                                </p>
                             </div>
                         )}
 
-                        {/* Elemento de referência para o scroll automático */}
                         <div ref={scrollRef} className="h-2 w-full" />
                     </div>
                 </div>
             </main>
 
-            {/* 3. Rodapé fixo fora da área de scroll */}
-            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 z-30 shadow-inner relative">
-                <div className="max-w-4xl mx-auto">
-                    <ChatBox
-                        onEnviarMensagem={onEnviarMensagem}
-                        desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
-                    />
-                    {mostrarBotãoUpgrade && !isVip && (
-                        <p className="text-center text-red-500 text-[10px] font-black uppercase mt-2 animate-pulse">
-                            ⚠️ Digitação bloqueada! Clique no botão laranja para continuar.
-                        </p>
-                    )}
+            {/* Footer Estilo WhatsApp */}
+            <footer className="bg-[#f0f2f5] p-2 sm:p-3 z-30 relative">
+                <div className="max-w-[800px] mx-auto flex items-center gap-2">
+                    <div className="flex-1">
+                        <ChatBox
+                            onEnviarMensagem={onEnviarMensagem}
+                            desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
+                        />
+                    </div>
                 </div>
+                {mostrarBotãoUpgrade && !isVip && (
+                    <p className="text-center text-red-500 text-[10px] font-bold uppercase mt-1">
+                        ⚠️ Limite atingido. Faça upgrade para continuar.
+                    </p>
+                )}
             </footer>
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-            .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-            .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
-            @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-            .animate-bounce-slow { animation: bounceSlow 2s infinite ease-in-out; }
-            /* Garante que o scroll seja suave e funcional no iOS */
-            .custom-scrollbar { -webkit-overflow-scrolling: touch; }
-        `}} />
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 10px; }
+                .custom-scrollbar { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+            `}} />
         </div>
     );
 };
