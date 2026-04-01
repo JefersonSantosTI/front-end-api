@@ -145,11 +145,17 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     };
 
     return (
-        <div className="flex flex-col h-full font-sans overflow-hidden bg-slate-900">
-            <main className="flex-1 overflow-hidden bg-slate-100 flex flex-col relative">
+        <div className="flex flex-col h-screen font-sans overflow-hidden bg-slate-900">
+            {/* 1. O main precisa ser 'relative' e 'overflow-hidden' para conter o scroll absoluto */}
+            <main className="flex-1 bg-slate-100 relative overflow-hidden">
+
+                {/* Background Texture */}
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-                <div className="flex-1 overflow-y-auto p-4 z-10 custom-scrollbar">
-                    <div className="max-w-4xl mx-auto w-full">
+
+                {/* 2. A div de scroll DEVE ser 'absolute inset-0' para o overflow-y-auto funcionar corretamente */}
+                <div className="absolute inset-0 overflow-y-auto p-4 z-10 custom-scrollbar flex flex-col">
+                    <div className="max-w-4xl mx-auto w-full pb-10">
+
                         <ListaMessagens mensagens={mensagens} loading={loading} />
 
                         {mostrarBotãoUpgrade && !isVip && (
@@ -165,12 +171,15 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
                                 </p>
                             </div>
                         )}
-                        <div ref={scrollRef} className="h-4" />
+
+                        {/* Elemento de referência para o scroll automático */}
+                        <div ref={scrollRef} className="h-2 w-full" />
                     </div>
                 </div>
             </main>
 
-            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 z-30 shadow-inner">
+            {/* 3. Rodapé fixo fora da área de scroll */}
+            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 z-30 shadow-inner relative">
                 <div className="max-w-4xl mx-auto">
                     <ChatBox
                         onEnviarMensagem={onEnviarMensagem}
@@ -186,11 +195,13 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
-                @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-                .animate-bounce-slow { animation: bounceSlow 2s infinite ease-in-out; }
-            `}} />
+            .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+            @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+            .animate-bounce-slow { animation: bounceSlow 2s infinite ease-in-out; }
+            /* Garante que o scroll seja suave e funcional no iOS */
+            .custom-scrollbar { -webkit-overflow-scrolling: touch; }
+        `}} />
         </div>
     );
 };
