@@ -145,68 +145,50 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     };
 
     return (
-        <div className="flex flex-col h-screen font-sans overflow-hidden bg-[#f0f2f5]">
-            {/* Header Estilo WhatsApp (Opcional, mas dá o toque profissional) */}
-            <header className="bg-[#00a884] py-3 px-4 flex items-center shadow-sm z-20">
-                <div className="w-10 h-10 rounded-full bg-gray-300 mr-3 flex-shrink-0 overflow-hidden">
-                    <img src="https://via.placeholder.com/40" alt="Bot" />
-                </div>
-                <div>
-                    <h2 className="text-white font-medium leading-none">Nutricionista IA</h2>
-                    <span className="text-[11px] text-emerald-100">online</span>
-                </div>
-            </header>
+        <div className="flex flex-col h-full font-sans bg-gray-950 text-white">
+            <main className="flex-1 relative overflow-hidden bg-gray-950">
+                {/* Textura sutil de fundo (opcional, mantendo o padrão dark) */}
+                <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
 
-            <main className="flex-1 relative overflow-hidden bg-[#e5ddd5]">
-                {/* Papel de parede sutil do WhatsApp */}
-                <div
-                    className="absolute inset-0 opacity-[0.06] pointer-events-none"
-                    style={{ backgroundImage: `url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')` }}
-                />
-
-                <div className="absolute inset-0 overflow-y-auto px-[5%] py-4 z-10 custom-scrollbar flex flex-col">
-                    <div className="max-w-[800px] mx-auto w-full pb-10">
+                <div className="absolute inset-0 overflow-y-auto px-4 py-4 z-10 custom-scrollbar">
+                    <div className="max-w-2xl mx-auto w-full pb-10">
 
                         <ListaMessagens mensagens={mensagens} loading={loading} />
 
                         {mostrarBotãoUpgrade && !isVip && (
-                            <div className="w-full mt-6 mb-12 flex justify-center">
+                            <div className="w-full mt-8 mb-12 flex flex-col items-center animate-fade-in">
                                 <button
                                     onClick={aoPedirUpgrade}
-                                    className="w-full max-w-md bg-[#00a884] hover:bg-[#008f70] text-white font-bold py-4 rounded-lg shadow-md transition-all uppercase tracking-wide"
+                                    className="w-full max-w-xs bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:scale-[1.02] transition-transform uppercase text-xs"
                                 >
-                                    🔓 Liberar Dieta Completa
+                                    🔓 Liberar Plano Premium
                                 </button>
+                                <p className="text-[9px] text-gray-500 mt-3 font-black uppercase tracking-tighter">
+                                    Acesso ilimitado às receitas e orientações
+                                </p>
                             </div>
                         )}
 
-                        <div ref={scrollRef} className="h-2 w-full" />
+                        <div ref={scrollRef} className="h-4 w-full" />
                     </div>
                 </div>
             </main>
 
-            {/* Footer Estilo WhatsApp */}
-            <footer className="bg-[#f0f2f5] p-2 sm:p-3 z-30 relative">
-                <div className="max-w-[800px] mx-auto flex items-center gap-2">
-                    <div className="flex-1">
-                        <ChatBox
-                            onEnviarMensagem={onEnviarMensagem}
-                            desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
-                        />
-                    </div>
+            {/* Footer Dark - Combinando com os inputs da Home */}
+            <footer className="bg-gray-950 p-4 border-t border-gray-900 z-30">
+                <div className="max-w-2xl mx-auto">
+                    <ChatBox
+                        onEnviarMensagem={onEnviarMensagem}
+                        desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
+                    />
                 </div>
-                {mostrarBotãoUpgrade && !isVip && (
-                    <p className="text-center text-red-500 text-[10px] font-bold uppercase mt-1">
-                        ⚠️ Limite atingido. Faça upgrade para continuar.
-                    </p>
-                )}
             </footer>
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 10px; }
-                .custom-scrollbar { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #10b981; }
             `}} />
         </div>
     );
