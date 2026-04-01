@@ -1,51 +1,49 @@
-import { useState, useEffect, useRef } from "react"
-import ListaMessagens from "../components/ListaMessagens"
-import ChatBox from "../components/ChatBox"
-import { api } from "../services/api"
+import { useState, useEffect, useRef } from "react";
+import ListaMessagens from "../components/ListaMessagens";
+import ChatBox from "../components/ChatBox";
+import { api } from "../services/api";
 
 const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) => {
-    const [loading, setLoading] = useState(false)
-    const [mensagens, setMensagens] = useState([])
-    const [mostrarBotãoUpgrade, setMostrarBotãoUpgrade] = useState(false)
-
+    const [loading, setLoading] = useState(false);
+    const [mensagens, setMensagens] = useState([]);
+    const [mostrarBotãoUpgrade, setMostrarBotãoUpgrade] = useState(false);
     const scrollRef = useRef(null);
 
+    // Rola o chat para o fim
     const scrollToBottom = () => {
         if (scrollRef.current) {
             scrollRef.current.scrollIntoView({ behavior: "smooth" });
         }
     };
 
+    // Extrai dados da resposta da IA para atualizar o perfil local
     const extrairEGuardarDados = (texto) => {
         const txt = texto.toLowerCase();
         let mudou = false;
 
-        // 1. EXTRAÇÃO DE NOME (Melhorada para pegar após saudações ou no início da frase)
-        // Ex: "Obrigado, Jeferson!" ou "Jeferson, analisei seu perfil"
+        // 1. Nome
         const regexNome = /(?:obrigado|perfeito|olá|oi|entendi|certo|ótimo|bom dia|boa noite),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i;
         const matchNome = texto.match(regexNome);
-        if (matchNome && matchNome[1]) {
+        if (matchNome?.[1]) {
             localStorage.setItem("perfil_nome", matchNome[1]);
             mudou = true;
         }
 
-        // 2. EXTRAÇÃO DE PESO (Suporta "97,8kg", "97.8", "peso de 97")
-        // Pega números de 2 ou 3 dígitos que podem ter vírgula/ponto
+        // 2. Peso e Meta (Correção do weightNum realizada aqui)
         const regexPeso = /(\d{2,3}[.,]?\d*)\s*(?:kg|quilos|kilos|peso)/i;
         const matchPeso = txt.match(regexPeso);
         if (matchPeso) {
             const pesoLimpo = matchPeso[1].replace(',', '.');
+            const pesoNum = parseFloat(pesoLimpo);
             localStorage.setItem("perfil_peso", pesoLimpo);
 
-            // Lógica simples de meta: Se não tem meta, sugere perder 10% do peso
-            const pesoNum = parseFloat(pesoLimpo);
             if (!localStorage.getItem("perfil_faltam")) {
                 localStorage.setItem("perfil_faltam", (pesoNum * 0.1).toFixed(1));
             }
             mudou = true;
         }
 
-        // 3. EXTRAÇÃO DE ALTURA (Formatos 1.82 ou 1,82)
+        // 3. Altura
         const regexAltura = /(\d[.,]\d{2})/;
         const matchAltura = txt.match(regexAltura);
         if (matchAltura) {
@@ -53,23 +51,18 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             mudou = true;
         }
 
-        // 4. EXTRAÇÃO DE GÊNERO (Opcional, para refinar a IA)
-        if (txt.includes("masculino") || txt.includes("homem")) {
-            localStorage.setItem("perfil_genero", "Masculino");
-        } else if (txt.includes("feminino") || txt.includes("mulher")) {
-            localStorage.setItem("perfil_genero", "Feminino");
-        }
-
-        // Se detectamos novos dados, avisamos a Home instantaneamente
         if (mudou && typeof aoAtualizarPerfil === "function") {
             aoAtualizarPerfil();
         }
     };
 
+    // Efeito para controlar o scroll automático
     useEffect(() => {
-        scrollToBottom();
+        const timer = setTimeout(scrollToBottom, 100);
+        return () => clearTimeout(timer);
     }, [mensagens, loading, mostrarBotãoUpgrade]);
 
+    // Carrega o histórico de mensagens do banco de dados
     const carregarHistorico = async () => {
         if (!whatsapp) return;
         setLoading(true);
@@ -77,35 +70,30 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         try {
             const response = await api.get(`/receitas/historico/${whatsapp}`);
             const dados = Array.isArray(response.data) ? response.data : [];
-
-            let detectouBloqueioNoHistorico = false;
+            let detectouBloqueio = false;
 
             const historicoFormatado = dados.map((msg, index) => {
                 let texto = msg.content || "";
 
-                // Minera dados do histórico antigo também
                 if (msg.role === "assistant") extrairEGuardarDados(texto);
 
                 if (isVip) {
-                    texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Conteúdo Liberado)");
-                    texto = texto.replace(/Para visualizar o restante do seu plano.*/gi, "Plano VIP Ativado! 💪");
-                    texto = texto.replace(/clique no BOTÃO LARANJA.*/gi, "Aproveite seu acesso ilimitado.");
-                }
-
-                if (!isVip && texto.toUpperCase().includes("BLOQUEADO")) {
-                    detectouBloqueioNoHistorico = true;
+                    texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Liberado)")
+                        .replace(/Para visualizar o restante.*/gi, "Plano VIP Ativado! 💪")
+                        .replace(/clique no BOTÃO LARANJA.*/gi, "Acesso ilimitado.");
+                } else if (texto.toUpperCase().includes("BLOQUEADO")) {
+                    detectouBloqueio = true;
                 }
 
                 return {
                     id: index,
-                    texto: texto,
+                    texto,
                     remetente: msg.role === "assistant" ? "bot" : "usuario"
                 };
             });
 
-            setMostrarBotãoUpgrade(!isVip && detectouBloqueioNoHistorico);
+            setMostrarBotãoUpgrade(!isVip && detectouBloqueio);
             setMensagens(historicoFormatado);
-
         } catch (error) {
             console.error("Erro ao carregar histórico:", error);
         } finally {
@@ -117,53 +105,40 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         carregarHistorico();
     }, [whatsapp, isVip]);
 
+    // Envia nova mensagem e sincroniza perfil com o backend
     const onEnviarMensagem = async (textoDigitado) => {
         if (!textoDigitado.trim()) return;
 
-        const novaMensagemUsuario = {
-            id: Date.now(),
-            texto: textoDigitado,
-            remetente: "usuario"
-        };
-
-        setMensagens((prev) => [...prev, novaMensagemUsuario]);
+        const novaMsgUser = { id: Date.now(), texto: textoDigitado, remetente: "usuario" };
+        setMensagens(prev => [...prev, novaMsgUser]);
         setLoading(true);
 
         try {
-            const nomeReal = localStorage.getItem("perfil_nome") || "";
+            const perfilExtraido = {
+                nome: localStorage.getItem("perfil_nome"),
+                peso: localStorage.getItem("perfil_peso"),
+                altura: localStorage.getItem("perfil_altura")
+            };
 
             const response = await api.post("/receitas/perguntar", {
-                whatsapp: whatsapp,
+                whatsapp,
                 mensagemAtual: textoDigitado,
-                nomeNoPerfil: nomeReal
+                perfilExtraido
             });
 
             const respostaTexto = response.data.resposta || "";
-
-            // Processa a resposta da IA para ver se ela confirmou novos dados do usuário
             extrairEGuardarDados(respostaTexto);
 
-            const temTextoDeBloqueio = respostaTexto.toUpperCase().includes("BLOQUEADO");
+            setMostrarBotãoUpgrade(!isVip && respostaTexto.toUpperCase().includes("BLOQUEADO"));
 
-            if (!isVip && temTextoDeBloqueio) {
-                setMostrarBotãoUpgrade(true);
-            } else {
-                setMostrarBotãoUpgrade(false);
-            }
-
-            setMensagens((prev) => [...prev, {
+            setMensagens(prev => [...prev, {
                 id: Date.now() + 1,
                 texto: isVip ? respostaTexto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "").replace(/Para visualizar o restante.*/gi, "") : respostaTexto,
                 remetente: "bot"
             }]);
-
         } catch (error) {
-            console.error("Erro ao enviar mensagem:", error);
-            setMensagens((prev) => [...prev, {
-                id: Date.now() + 2,
-                texto: "Ops! Tente novamente em instantes. 😢",
-                remetente: "bot"
-            }]);
+            console.error("Erro ao enviar:", error);
+            setMensagens(prev => [...prev, { id: Date.now() + 2, texto: "Ops! Tente novamente. 😢", remetente: "bot" }]);
         } finally {
             setLoading(false);
         }
@@ -172,21 +147,20 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     return (
         <div className="flex flex-col h-full font-sans overflow-hidden bg-slate-900">
             <main className="flex-1 overflow-hidden bg-slate-100 flex flex-col relative">
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
                 <div className="flex-1 overflow-y-auto p-4 z-10 custom-scrollbar">
                     <div className="max-w-4xl mx-auto w-full">
                         <ListaMessagens mensagens={mensagens} loading={loading} />
 
                         {mostrarBotãoUpgrade && !isVip && (
-                            <div className="w-full mt-6 mb-12 animate-bounce-slow transition-all">
+                            <div className="w-full mt-6 mb-12 animate-bounce-slow">
                                 <button
                                     onClick={aoPedirUpgrade}
-                                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black py-5 rounded-2xl shadow-[0_10px_25px_rgba(234,88,12,0.4)] border-b-4 border-red-800 active:border-b-0 active:translate-y-1 transition-all uppercase text-sm sm:text-base px-2"
+                                    className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white font-black py-5 rounded-2xl shadow-lg border-b-4 border-red-800 active:border-b-0 active:translate-y-1 transition-all uppercase"
                                 >
                                     🔓 LIBERAR DIETA COMPLETA AGORA
                                 </button>
-                                <p className="text-center text-slate-500 text-[11px] mt-3 font-black uppercase tracking-widest">
+                                <p className="text-center text-slate-500 text-[11px] mt-3 uppercase tracking-widest font-bold">
                                     Acesso imediato ao almoço e jantar
                                 </p>
                             </div>
@@ -196,14 +170,14 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
                 </div>
             </main>
 
-            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 flex-none z-30 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 z-30 shadow-inner">
                 <div className="max-w-4xl mx-auto">
                     <ChatBox
                         onEnviarMensagem={onEnviarMensagem}
                         desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
                     />
                     {mostrarBotãoUpgrade && !isVip && (
-                        <p className="text-center text-red-500 text-[10px] font-black uppercase mt-2 tracking-widest animate-pulse">
+                        <p className="text-center text-red-500 text-[10px] font-black uppercase mt-2 animate-pulse">
                             ⚠️ Digitação bloqueada! Clique no botão laranja para continuar.
                         </p>
                     )}
@@ -214,11 +188,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
                 __html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
-                input, textarea { font-size: 16px !important; }
-                @keyframes bounceSlow {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-8px); }
-                }
+                @keyframes bounceSlow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
                 .animate-bounce-slow { animation: bounceSlow 2s infinite ease-in-out; }
             `}} />
         </div>
