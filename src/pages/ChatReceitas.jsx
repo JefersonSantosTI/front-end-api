@@ -10,13 +10,18 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
 
     const scrollRef = useRef(null);
 
-    // Função de scroll melhorada com timeout para garantir que o DOM renderizou
+    // FUNÇÃO DE SCROLL ATUALIZADA
+    // Aumentamos o timeout para 300ms para compensar a renderização do Markdown
     const scrollToBottom = () => {
         setTimeout(() => {
             if (scrollRef.current) {
-                scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+                scrollRef.current.scrollIntoView({
+                    behavior: "smooth",
+                    block: "end",
+                    inline: "nearest"
+                });
             }
-        }, 100);
+        }, 300);
     };
 
     const extrairEGuardarDados = (texto) => {
@@ -49,10 +54,9 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         }
     };
 
-    // Trigger de scroll apenas quando novas mensagens chegarem
     useEffect(() => {
         scrollToBottom();
-    }, [mensagens]);
+    }, [mensagens, loading]); // Rola também quando o loading mudar (Ana digitando...)
 
     const carregarHistorico = async () => {
         if (!whatsapp) return;
@@ -141,11 +145,11 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
 
     return (
         <div className="flex flex-col h-full w-full bg-slate-900 overflow-hidden">
-            {/* CORREÇÃO AQUI: main agora é o container de scroll principal */}
-            <main className="flex-1 overflow-y-auto bg-slate-100 relative custom-scrollbar">
+            {/* O container 'main' agora gerencia o scroll de forma independente */}
+            <main className="flex-1 overflow-y-auto bg-slate-100 relative custom-scrollbar scroll-smooth">
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
 
-                <div className="max-w-4xl mx-auto w-full p-4 z-10 min-h-full flex flex-col">
+                <div className="max-w-4xl mx-auto w-full p-4 z-10 flex flex-col min-h-full">
                     <ListaMessagens mensagens={mensagens} loading={loading} />
 
                     {mostrarBotãoUpgrade && !isVip && (
@@ -158,12 +162,13 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
                             </button>
                         </div>
                     )}
-                    {/* Elemento de ancoragem para o scroll */}
-                    <div ref={scrollRef} className="h-2 w-full flex-none" />
+
+                    {/* Elemento de ancoragem invisível mas com 'clear' para forçar o final da página */}
+                    <div ref={scrollRef} style={{ clear: "both", height: "20px" }} />
                 </div>
             </main>
 
-            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 z-30 shadow-2xl">
+            <footer className="bg-white p-3 sm:p-4 border-t border-slate-200 z-30 shadow-2xl flex-none">
                 <div className="max-w-4xl mx-auto">
                     <ChatBox
                         onEnviarMensagem={onEnviarMensagem}
@@ -179,7 +184,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
 
             <style dangerouslySetInnerHTML={{
                 __html: `
-                .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
                 @keyframes bounceSlow {
                     0%, 100% { transform: translateY(0); }
