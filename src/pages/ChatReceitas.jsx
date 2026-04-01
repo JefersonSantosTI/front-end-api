@@ -10,7 +10,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     const scrollRef = useRef(null);
 
     // Defina aqui o limite de interações para usuários FREE
-    const LIMITE_FREE = 10;
+    const LIMITE_FREE = 6;
 
     const scrollToBottom = () => {
         if (scrollRef.current) {
