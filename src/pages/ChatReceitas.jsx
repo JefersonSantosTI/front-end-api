@@ -21,7 +21,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         const txt = texto.toLowerCase();
         let mudou = false;
 
-        // 1. Nome
         const regexNome = /(?:obrigado|perfeito|olá|oi|entendi|certo|ótimo|bom dia|boa noite),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i;
         const matchNome = texto.match(regexNome);
         if (matchNome?.[1]) {
@@ -29,7 +28,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             mudou = true;
         }
 
-        // 2. Peso e Meta (Correção do weightNum realizada aqui)
         const regexPeso = /(\d{2,3}[.,]?\d*)\s*(?:kg|quilos|kilos|peso)/i;
         const matchPeso = txt.match(regexPeso);
         if (matchPeso) {
@@ -43,7 +41,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             mudou = true;
         }
 
-        // 3. Altura
         const regexAltura = /(\d[.,]\d{2})/;
         const matchAltura = txt.match(regexAltura);
         if (matchAltura) {
@@ -56,13 +53,11 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         }
     };
 
-    // Efeito para controlar o scroll automático
     useEffect(() => {
         const timer = setTimeout(scrollToBottom, 100);
         return () => clearTimeout(timer);
     }, [mensagens, loading, mostrarBotãoUpgrade]);
 
-    // Carrega o histórico de mensagens do banco de dados
     const carregarHistorico = async () => {
         if (!whatsapp) return;
         setLoading(true);
@@ -74,7 +69,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
 
             const historicoFormatado = dados.map((msg, index) => {
                 let texto = msg.content || "";
-
                 if (msg.role === "assistant") extrairEGuardarDados(texto);
 
                 if (isVip) {
@@ -105,7 +99,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         carregarHistorico();
     }, [whatsapp, isVip]);
 
-    // Envia nova mensagem e sincroniza perfil com o backend
     const onEnviarMensagem = async (textoDigitado) => {
         if (!textoDigitado.trim()) return;
 
@@ -147,8 +140,8 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     return (
         <div className="flex flex-col h-full font-sans bg-gray-950 text-white">
             <main className="flex-1 relative overflow-hidden bg-gray-950">
-                {/* Textura sutil de fundo (opcional, mantendo o padrão dark) */}
-                <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+                {/* Textura sutil de fundo estilo Carbono */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
 
                 <div className="absolute inset-0 overflow-y-auto px-4 py-4 z-10 custom-scrollbar">
                     <div className="max-w-2xl mx-auto w-full pb-10">
@@ -159,12 +152,12 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
                             <div className="w-full mt-8 mb-12 flex flex-col items-center animate-fade-in">
                                 <button
                                     onClick={aoPedirUpgrade}
-                                    className="w-full max-w-xs bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:scale-[1.02] transition-transform uppercase text-xs"
+                                    className="w-full max-w-xs bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-[1.02] transition-transform uppercase text-xs"
                                 >
                                     🔓 Liberar Plano Premium
                                 </button>
-                                <p className="text-[9px] text-gray-500 mt-3 font-black uppercase tracking-tighter">
-                                    Acesso ilimitado às receitas e orientações
+                                <p className="text-[9px] text-gray-500 mt-3 font-black uppercase tracking-widest">
+                                    Acesso ilimitado às receitas e treinos
                                 </p>
                             </div>
                         )}
@@ -174,13 +167,19 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
                 </div>
             </main>
 
-            {/* Footer Dark - Combinando com os inputs da Home */}
-            <footer className="bg-gray-950 p-4 border-t border-gray-900 z-30">
+            {/* Footer Dark - Agora sem a borda superior quadrada */}
+            <footer className="bg-gray-950 px-4 pb-6 pt-2 z-30">
                 <div className="max-w-2xl mx-auto">
                     <ChatBox
                         onEnviarMensagem={onEnviarMensagem}
                         desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
                     />
+                    {/* Aviso sutil de bloqueio se não for VIP */}
+                    {mostrarBotãoUpgrade && !isVip && (
+                        <p className="text-center text-red-500/80 text-[8px] font-black uppercase mt-2 tracking-widest">
+                            Chat bloqueado para usuários free
+                        </p>
+                    )}
                 </div>
             </footer>
 
