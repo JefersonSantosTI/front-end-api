@@ -3,7 +3,6 @@ import ListaMessagens from "../components/ListaMessagens"
 import ChatBox from "../components/ChatBox"
 import { api } from "../services/api"
 
-// Adicionei 'aoAtualizarPerfil' como uma prop para avisar a Home
 const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) => {
     const [loading, setLoading] = useState(false)
     const [mensagens, setMensagens] = useState([])
@@ -21,31 +20,47 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         const txt = texto.toLowerCase();
         let mudou = false;
 
-        // 1. EXTRAÇÃO DE NOME
-        const regexNome = /(?:obrigado|perfeito|olá|bem-vinda|fala|oi|entendi|certo),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]+)/i;
+        // 1. EXTRAÇÃO DE NOME (Melhorada para pegar após saudações ou no início da frase)
+        // Ex: "Obrigado, Jeferson!" ou "Jeferson, analisei seu perfil"
+        const regexNome = /(?:obrigado|perfeito|olá|oi|entendi|certo|ótimo|bom dia|boa noite),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i;
         const matchNome = texto.match(regexNome);
-        if (matchNome && matchNome[1] && matchNome[1].length > 2) {
+        if (matchNome && matchNome[1]) {
             localStorage.setItem("perfil_nome", matchNome[1]);
             mudou = true;
         }
 
-        // 2. EXTRAÇÃO DE PESO (Suporta 97,8 ou 97.8)
-        const regexPeso = /(?:peso:?|pesando)\s*(\d+[.,]?\d*)/i;
+        // 2. EXTRAÇÃO DE PESO (Suporta "97,8kg", "97.8", "peso de 97")
+        // Pega números de 2 ou 3 dígitos que podem ter vírgula/ponto
+        const regexPeso = /(\d{2,3}[.,]?\d*)\s*(?:kg|quilos|kilos|peso)/i;
         const matchPeso = txt.match(regexPeso);
         if (matchPeso) {
-            localStorage.setItem("perfil_peso", matchPeso[1].replace(',', '.'));
+            const pesoLimpo = matchPeso[1].replace(',', '.');
+            localStorage.setItem("perfil_peso", pesoLimpo);
+
+            // Lógica simples de meta: Se não tem meta, sugere perder 10% do peso
+            const pesoNum = parseFloat(pesoLimpo);
+            if (!localStorage.getItem("perfil_faltam")) {
+                localStorage.setItem("perfil_faltam", (pesoNum * 0.1).toFixed(1));
+            }
             mudou = true;
         }
 
-        // 3. EXTRAÇÃO DE ALTURA
-        const regexAltura = /(?:altura:?)\s*(\d[.,]\d{2})/i;
+        // 3. EXTRAÇÃO DE ALTURA (Formatos 1.82 ou 1,82)
+        const regexAltura = /(\d[.,]\d{2})/;
         const matchAltura = txt.match(regexAltura);
         if (matchAltura) {
             localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
             mudou = true;
         }
 
-        // Se detectamos novos dados, avisamos a Home (se a função existir)
+        // 4. EXTRAÇÃO DE GÊNERO (Opcional, para refinar a IA)
+        if (txt.includes("masculino") || txt.includes("homem")) {
+            localStorage.setItem("perfil_genero", "Masculino");
+        } else if (txt.includes("feminino") || txt.includes("mulher")) {
+            localStorage.setItem("perfil_genero", "Feminino");
+        }
+
+        // Se detectamos novos dados, avisamos a Home instantaneamente
         if (mudou && typeof aoAtualizarPerfil === "function") {
             aoAtualizarPerfil();
         }
@@ -68,6 +83,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             const historicoFormatado = dados.map((msg, index) => {
                 let texto = msg.content || "";
 
+                // Minera dados do histórico antigo também
                 if (msg.role === "assistant") extrairEGuardarDados(texto);
 
                 if (isVip) {
@@ -124,7 +140,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
 
             const respostaTexto = response.data.resposta || "";
 
-            // Aqui mineramos os dados da resposta da IA para atualizar a Home
+            // Processa a resposta da IA para ver se ela confirmou novos dados do usuário
             extrairEGuardarDados(respostaTexto);
 
             const temTextoDeBloqueio = respostaTexto.toUpperCase().includes("BLOQUEADO");
