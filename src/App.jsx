@@ -145,7 +145,7 @@ function App() {
             </div>
 
             <button onClick={() => setAbaAtiva("chat")} className="w-full bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm mb-6 hover:scale-[1.02] transition-transform">
-              💬 Abrir Chat Nutri AI
+              💬 Abrir Chat Nutri
             </button>
 
             <button onClick={handleSair} className="text-[10px] text-gray-600 font-black uppercase tracking-widest hover:text-red-500">
@@ -159,7 +159,7 @@ function App() {
         <div className="flex-1 flex flex-col">
           <header className="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center">
             <button onClick={() => setAbaAtiva("home")} className="text-emerald-500 font-black text-xs uppercase">← Voltar</button>
-            <span className="text-[10px] font-black uppercase">Ana Nutri Fit</span>
+            <span className="text-[10px] font-black uppercase">TREINO FIT</span>
             <div className="w-8 h-8 bg-emerald-500 rounded-full" />
           </header>
           <ChatReceitas
