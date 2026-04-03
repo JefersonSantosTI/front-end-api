@@ -67,7 +67,7 @@ const TelaPlanos = () => {
                             <li>✅ IA desbloqueada sem limites</li>
                             <li>✅ Cardápio completo (Almoço/Jantar)</li>
                             <li>✅ Planilha de Treino personalizada</li>
-                            <li>✅ Monte Sua Alimençao Para Sua Melhor Forma</li>
+                            <li>✅ Monte sua alimentação agora e alcance sua melhor forma</li>
 
 
                         </ul>
