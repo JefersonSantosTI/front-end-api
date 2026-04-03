@@ -36,7 +36,7 @@ const TelaPlanos = () => {
         <div className="w-full text-center">
             <div className="mb-8">
                 <h2 className="text-3xl font-black text-emerald-400 uppercase italic">Acesso VIP Ilimitado</h2>
-                <p className="text-gray-400 text-sm mt-1">Escolha um plano para liberar Dieta, Treinos e Suporte 24h</p>
+                <p className="text-gray-400 text-sm mt-1">Escolha um plano para liberar Dieta, Treinos 24h</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -67,7 +67,9 @@ const TelaPlanos = () => {
                             <li>✅ IA desbloqueada sem limites</li>
                             <li>✅ Cardápio completo (Almoço/Jantar)</li>
                             <li>✅ Planilha de Treino personalizada</li>
-                            <li>✅ Suporte VIP no WhatsApp</li>
+                            <li>✅ Monte Sua Alimençao Para Sua Melhor Forma</li>
+
+
                         </ul>
 
                         <button
