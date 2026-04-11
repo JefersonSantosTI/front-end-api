@@ -10,7 +10,6 @@ function App() {
   const [bloqueado, setBloqueado] = useState(false);
   const [codigoInput, setCodigoInput] = useState("");
 
-  // Ref para controle de execução e evitar loops
   const verificandoRef = useRef(false);
 
   const [perfil, setPerfil] = useState({
@@ -24,7 +23,6 @@ function App() {
 
   const API_URL = "https://api-backend-treino-fit.onrender.com/api";
 
-  // 1. Sincronização Segura: Só atualiza o estado se houver mudança real
   const sincronizarEstadosLocais = useCallback(() => {
     const novoVip = localStorage.getItem("acesso_vip") === "true";
     const novoPerfil = {
@@ -43,7 +41,6 @@ function App() {
     });
   }, []);
 
-  // 2. Busca de dados: Travada por Ref para evitar chamadas simultâneas
   const verificarAcessoNoBanco = useCallback(async (idForcado) => {
     const whats = idForcado || localStorage.getItem("usuario_whatsapp");
     if (!whats || verificandoRef.current) return;
@@ -55,13 +52,11 @@ function App() {
 
       if (response.ok) {
         const dados = await response.json();
-
         localStorage.setItem("perfil_nome", dados.nome || "Guerreiro(a)");
         localStorage.setItem("perfil_peso", dados.peso || "0");
         localStorage.setItem("perfil_altura", dados.altura || "0");
         localStorage.setItem("perfil_meta", dados.meta || "Emagrecimento");
         localStorage.setItem("acesso_vip", dados.pago ? "true" : "false");
-
         sincronizarEstadosLocais();
       }
     } catch (err) {
@@ -71,7 +66,6 @@ function App() {
     }
   }, [API_URL, sincronizarEstadosLocais]);
 
-  // 3. Efeito de Inicialização: Roda apenas quando o usuário loga
   useEffect(() => {
     if (usuario) {
       verificarAcessoNoBanco(usuario);
@@ -117,6 +111,8 @@ function App() {
 
   return (
     <div className="fixed inset-0 bg-gray-950 text-white flex flex-col overflow-hidden">
+
+      {/* --- ABA HOME --- */}
       {abaAtiva === "home" && (
         <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
           <header className="w-full max-w-md flex justify-between items-center mt-4 mb-8">
@@ -167,9 +163,22 @@ function App() {
               </div>
             </div>
 
-            <button onClick={() => setAbaAtiva("chat")} className="w-full bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm mb-6 hover:scale-[1.02] transition-transform">
-              💬 Abrir Chat Nutri
-            </button>
+            {/* --- BOTÕES PRINCIPAIS --- */}
+            <div className="w-full space-y-4 mb-8">
+              <button
+                onClick={() => setAbaAtiva("chat")}
+                className="w-full bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm hover:scale-[1.02] transition-transform flex items-center justify-center space-x-2"
+              >
+                <span>💬</span> <span>Abrir Chat Nutri</span>
+              </button>
+
+              <button
+                onClick={() => setAbaAtiva("treino")}
+                className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm hover:scale-[1.02] transition-transform flex items-center justify-center space-x-2"
+              >
+                <span>💪</span> <span>Meus Treinos</span>
+              </button>
+            </div>
 
             <button onClick={handleSair} className="text-[10px] text-gray-600 font-black uppercase tracking-widest hover:text-red-500">
               [ Encerrar Sessão ]
@@ -178,12 +187,13 @@ function App() {
         </div>
       )}
 
+      {/* --- ABA CHAT NUTRI --- */}
       {abaAtiva === "chat" && (
         <div className="flex-1 flex flex-col">
           <header className="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center">
             <button onClick={() => setAbaAtiva("home")} className="text-emerald-500 font-black text-xs uppercase">← Voltar</button>
-            <span className="text-[10px] font-black uppercase">TREINO FIT</span>
-            <div className="w-8 h-8 bg-emerald-500 rounded-full" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Nutrição Inteligente</span>
+            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-[10px] font-black text-black">FIT</div>
           </header>
           <ChatReceitas
             whatsapp={usuario}
@@ -194,6 +204,28 @@ function App() {
         </div>
       )}
 
+      {/* --- ABA TREINOS --- */}
+      {abaAtiva === "treino" && (
+        <div className="flex-1 flex flex-col">
+          <header className="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center">
+            <button onClick={() => setAbaAtiva("home")} className="text-blue-500 font-black text-xs uppercase">← Voltar</button>
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Central de Treinos</span>
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-[10px] font-black text-white">FIT</div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center">
+            <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mb-4">
+              <span className="text-4xl">🚧</span>
+            </div>
+            <h3 className="text-xl font-black uppercase mb-2">Área em Construção</h3>
+            <p className="text-gray-500 text-[10px] uppercase font-bold max-w-[200px]">
+              Jeferson, estamos preparando seus protocolos de hipertrofia. Em breve estarão disponíveis!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL BLOQUEIO / PLANOS --- */}
       {bloqueado && (
         <div className="fixed inset-0 z-[500] bg-gray-950 flex flex-col items-center p-6 overflow-y-auto">
           <TelaPlanos aoEscolher={() => { }} />
