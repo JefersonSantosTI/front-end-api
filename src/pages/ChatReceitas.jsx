@@ -9,7 +9,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     const [mostrarBotãoUpgrade, setMostrarBotãoUpgrade] = useState(false);
     const scrollRef = useRef(null);
 
-    // Defina aqui o limite de interações para usuários FREE
     const LIMITE_FREE = 6;
 
     const scrollToBottom = () => {
@@ -19,6 +18,7 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     };
 
     const extrairEGuardarDados = (texto) => {
+        if (!texto) return;
         const txt = texto.toLowerCase();
         let mudou = false;
 
@@ -49,7 +49,10 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         }
 
         if (mudou && typeof aoAtualizarPerfil === "function") {
-            aoAtualizarPerfil();
+            // Pequeno delay para garantir que o estado do chat já foi processado
+            setTimeout(() => {
+                aoAtualizarPerfil();
+            }, 100);
         }
     };
 
@@ -66,14 +69,12 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             const response = await api.get(`/receitas/historico/${whatsapp}`);
             const dados = Array.isArray(response.data) ? response.data : [];
 
-            // Conta quantas mensagens o usuário já enviou
             const totalMsgUsuario = dados.filter(m => m.role === "user").length;
             let detectouBloqueioManual = !isVip && totalMsgUsuario >= LIMITE_FREE;
             let detectouBloqueioIA = false;
 
             const historicoFormatado = dados.map((msg, index) => {
                 let texto = msg.content || "";
-                if (msg.role === "assistant") extrairEGuardarDados(texto);
 
                 if (isVip) {
                     texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Liberado)")
@@ -90,8 +91,16 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
                 };
             });
 
+            // 1. Primeiro define as mensagens e UI
             setMostrarBotãoUpgrade(detectouBloqueioManual || detectouBloqueioIA);
             setMensagens(historicoFormatado);
+
+            // 2. Depois extrai dados apenas da última mensagem de forma isolada
+            const ultimaMsgBot = [...dados].reverse().find(m => m.role === "assistant");
+            if (ultimaMsgBot) {
+                extrairEGuardarDados(ultimaMsgBot.content);
+            }
+
         } catch (error) {
             console.error("Erro ao carregar histórico:", error);
         } finally {
@@ -106,7 +115,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
     const onEnviarMensagem = async (textoDigitado) => {
         if (!textoDigitado.trim()) return;
 
-        // VERIFICAÇÃO DE LIMITE ANTES DE ENVIAR
         const msgsEnviadas = mensagens.filter(m => m.remetente === "usuario").length;
         if (!isVip && msgsEnviadas >= LIMITE_FREE) {
             setMostrarBotãoUpgrade(true);
@@ -131,9 +139,10 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             });
 
             const respostaTexto = response.data.resposta || "";
+
+            // ✅ EXTRAÇÃO REATIVA: Acontece aqui após o evento da API, evitando loops de efeito
             extrairEGuardarDados(respostaTexto);
 
-            // Bloqueia se a IA mandou a palavra ou se atingiu o limite agora
             const atingiuLimiteAgora = !isVip && (msgsEnviadas + 1) >= LIMITE_FREE;
             const iaBloqueou = respostaTexto.toUpperCase().includes("BLOQUEADO");
 
@@ -165,7 +174,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
 
                         {mostrarBotãoUpgrade && !isVip && (
                             <div className="w-full mt-8 mb-12 flex flex-col items-center animate-bounce-slow">
-                                {/* BOTÃO LARANJA DE UPGRADE */}
                                 <button
                                     onClick={aoPedirUpgrade}
                                     className="w-full max-w-xs bg-orange-500 text-white font-black py-5 rounded-[2rem] shadow-[0_10px_20px_rgba(249,115,22,0.4)] hover:scale-[1.05] transition-all uppercase text-sm flex items-center justify-center gap-2"

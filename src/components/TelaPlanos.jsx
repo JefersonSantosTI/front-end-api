@@ -1,8 +1,6 @@
 import React from 'react';
 
 const TelaPlanos = () => {
-    const MEU_WHATSAPP = "5511939242518";
-
     const planos = [
         {
             nome: "Trimestral",
@@ -10,6 +8,7 @@ const TelaPlanos = () => {
             precoMensal: "17,90",
             total: "53,70",
             destaque: false,
+            linkKiwify: "https://pay.kiwify.com.br/bphu4Hm" // Atualize aqui
         },
         {
             nome: "Semestral",
@@ -17,6 +16,7 @@ const TelaPlanos = () => {
             precoMensal: "11,90",
             total: "71,40",
             destaque: true,
+            linkKiwify: "https://pay.kiwify.com.br/7P3T9XB" // Atualize aqui
         },
         {
             nome: "Anual",
@@ -24,19 +24,15 @@ const TelaPlanos = () => {
             precoMensal: "7,90",
             total: "94,80",
             destaque: false,
+            linkKiwify: "https://pay.kiwify.com.br/akNIH4p"
         }
     ];
 
-    const handleAssinar = (plano) => {
-        const mensagem = `Olá! Quero o Plano ${plano.nome} (R$ ${plano.total}) do Treino Fit IA. Me mande o PIX para liberar meu código VIP! 🚀`; const url = `https://wa.me/${MEU_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
-        window.open(url, '_blank');
-    };
-
     return (
-        <div className="w-full text-center">
+        <div className="w-full text-center p-4">
             <div className="mb-8">
                 <h2 className="text-3xl font-black text-emerald-400 uppercase italic">Acesso VIP Ilimitado</h2>
-                <p className="text-gray-400 text-sm mt-1">Escolha um plano para liberar Dieta, Treinos 24h</p>
+                <p className="text-gray-400 text-sm mt-1">Liberação imediata via Cartão ou PIX</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -55,7 +51,7 @@ const TelaPlanos = () => {
                         )}
 
                         <div>
-                            <h3 className="text-xl font-bold">{plano.nome}</h3>
+                            <h3 className="text-xl font-bold text-white">{plano.nome}</h3>
                             <div className="my-4">
                                 <span className="text-4xl font-black text-white">R$ {plano.precoMensal}</span>
                                 <span className="text-gray-400 text-sm italic"> /mês</span>
@@ -67,20 +63,20 @@ const TelaPlanos = () => {
                             <li>✅ IA desbloqueada sem limites</li>
                             <li>✅ Cardápio completo (Almoço/Jantar)</li>
                             <li>✅ Planilha de Treino personalizada</li>
-                            <li>✅ Monte sua alimentação agora e alcance sua melhor forma</li>
-
-
+                            <li>✅ Liberação automática após o pagamento</li>
                         </ul>
 
-                        <button
-                            onClick={() => handleAssinar(plano)}
-                            className={`w-full py-4 rounded-xl font-black text-sm uppercase transition-all active:scale-95 ${plano.destaque
+                        {/* Trocado de button para <a> para evitar o erro de Immutability */}
+                        <a
+                            href={plano.linkKiwify}
+                            target="_self"
+                            className={`w-full py-4 rounded-xl font-black text-sm uppercase text-center block transition-all active:scale-95 ${plano.destaque
                                 ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20'
                                 : 'bg-white text-black hover:bg-gray-200'
                                 }`}
                         >
-                            Assinar via PIX
-                        </button>
+                            Assinar Agora
+                        </a>
                     </div>
                 ))}
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ChatReceitas from "./pages/ChatReceitas";
 import Login from "./components/Login";
 import TelaPlanos from "./components/TelaPlanos";
@@ -9,6 +9,9 @@ function App() {
   const [abaAtiva, setAbaAtiva] = useState("home");
   const [bloqueado, setBloqueado] = useState(false);
   const [codigoInput, setCodigoInput] = useState("");
+
+  // Ref para controle de execução e evitar loops
+  const verificandoRef = useRef(false);
 
   const [perfil, setPerfil] = useState({
     nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
@@ -21,48 +24,62 @@ function App() {
 
   const API_URL = "https://api-backend-treino-fit.onrender.com/api";
 
-  // Função para ler o LocalStorage e atualizar o estado visual
-  const sincronizarEstadosLocais = () => {
-    setIsVip(localStorage.getItem("acesso_vip") === "true");
-    setPerfil({
+  // 1. Sincronização Segura: Só atualiza o estado se houver mudança real
+  const sincronizarEstadosLocais = useCallback(() => {
+    const novoVip = localStorage.getItem("acesso_vip") === "true";
+    const novoPerfil = {
       nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
       peso: localStorage.getItem("perfil_peso") || "0",
       altura: localStorage.getItem("perfil_altura") || "0",
       meta: localStorage.getItem("perfil_meta") || "Defina sua meta",
       faltam: localStorage.getItem("perfil_faltam") || "0",
       diasRestantes: localStorage.getItem("perfil_dias") || "0"
-    });
-  };
+    };
 
-  // Sincroniza com o banco de dados ao carregar ou mudar de usuário
+    setIsVip(prev => (prev !== novoVip ? novoVip : prev));
+    setPerfil(prev => {
+      if (JSON.stringify(prev) === JSON.stringify(novoPerfil)) return prev;
+      return novoPerfil;
+    });
+  }, []);
+
+  // 2. Busca de dados: Travada por Ref para evitar chamadas simultâneas
+  const verificarAcessoNoBanco = useCallback(async (idForcado) => {
+    const whats = idForcado || localStorage.getItem("usuario_whatsapp");
+    if (!whats || verificandoRef.current) return;
+
+    try {
+      verificandoRef.current = true;
+      const whatsLimpo = String(whats).replace(/\D/g, "");
+      const response = await fetch(`${API_URL}/usuarios/${whatsLimpo}`);
+
+      if (response.ok) {
+        const dados = await response.json();
+
+        localStorage.setItem("perfil_nome", dados.nome || "Guerreiro(a)");
+        localStorage.setItem("perfil_peso", dados.peso || "0");
+        localStorage.setItem("perfil_altura", dados.altura || "0");
+        localStorage.setItem("perfil_meta", dados.meta || "Emagrecimento");
+        localStorage.setItem("acesso_vip", dados.pago ? "true" : "false");
+
+        sincronizarEstadosLocais();
+      }
+    } catch (err) {
+      console.error("Falha na sincronização:", err);
+    } finally {
+      verificandoRef.current = false;
+    }
+  }, [API_URL, sincronizarEstadosLocais]);
+
+  // 3. Efeito de Inicialização: Roda apenas quando o usuário loga
   useEffect(() => {
     if (usuario) {
-      const puxarDadosDoBanco = async () => {
-        try {
-          const whatsLimpo = String(usuario).replace(/\D/g, "");
-          const response = await fetch(`${API_URL}/usuarios/${whatsLimpo}`);
-          if (response.ok) {
-            const dados = await response.json();
-            // Salva tudo no LocalStorage para persistência offline rápida
-            localStorage.setItem("perfil_nome", dados.nome || "Guerreiro(a)");
-            localStorage.setItem("perfil_peso", dados.peso || "0");
-            localStorage.setItem("perfil_altura", dados.altura || "0");
-            localStorage.setItem("perfil_meta", dados.meta || "Emagrecimento");
-            localStorage.setItem("acesso_vip", dados.pago ? "true" : "false");
-
-            sincronizarEstadosLocais();
-          }
-        } catch (err) {
-          console.error("Erro ao conectar com API:", err);
-        }
-      };
-      puxarDadosDoBanco();
+      verificarAcessoNoBanco(usuario);
     }
-  }, [usuario]);
+  }, [usuario, verificarAcessoNoBanco]);
 
   const handleAtivarVip = async () => {
     if (!codigoInput) return alert("Por favor, digite o código.");
-
     try {
       const response = await fetch(`${API_URL}/usuarios/ativar-vip`, {
         method: "POST",
@@ -70,19 +87,18 @@ function App() {
         body: JSON.stringify({ whatsapp: usuario, codigo: codigoInput })
       });
 
-      const resultado = await response.json();
-
       if (response.ok) {
         alert("💎 Parabéns! Seu acesso VIP foi liberado.");
         localStorage.setItem("acesso_vip", "true");
-        setIsVip(true);
+        await verificarAcessoNoBanco(usuario);
         setBloqueado(false);
         setCodigoInput("");
       } else {
-        alert(resultado.mensagem || "Erro ao ativar código.");
+        const erro = await response.json();
+        alert(erro.mensagem || "Erro ao ativar código.");
       }
     } catch {
-      console.error("Erro de conexão. Verifique se o backend está online.");
+      alert("Erro de conexão com o servidor.");
     }
   };
 
@@ -111,17 +127,23 @@ function App() {
                 <h2 className="text-xl font-black uppercase">{perfil.nome}</h2>
               </div>
             </div>
-            <button onClick={() => setBloqueado(true)} className={`px-4 py-2 rounded-2xl border ${isVip ? 'border-emerald-500 text-emerald-500' : 'border-orange-500 text-orange-500'} text-[10px] font-black uppercase`}>
+            <button
+              onClick={() => !isVip && setBloqueado(true)}
+              className={`px-4 py-2 rounded-2xl border ${isVip ? 'border-emerald-500 text-emerald-500 cursor-default' : 'border-orange-500 text-orange-500 animate-pulse'} text-[10px] font-black uppercase`}
+            >
               {isVip ? "💎 VIP ATIVO" : "⚡ VIRAR VIP"}
             </button>
           </header>
 
           <main className="w-full max-w-md flex-1 flex flex-col items-center">
-            {/* Gráfico Circular Simples */}
+            {/* Gráfico de Progresso */}
             <div className="relative w-56 h-56 mb-8 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90">
                 <circle cx="112" cy="112" r="100" stroke="#111827" strokeWidth="12" fill="transparent" />
-                <circle cx="112" cy="112" r="100" stroke="#10b981" strokeWidth="12" fill="transparent" strokeDasharray="628" strokeDashoffset="450" strokeLinecap="round" />
+                <circle cx="112" cy="112" r="100" stroke="#10b981" strokeWidth="12" fill="transparent"
+                  strokeDasharray="628"
+                  strokeDashoffset={628 - (628 * (isVip ? 1 : 0.4))}
+                  strokeLinecap="round" />
               </svg>
               <div className="absolute flex flex-col items-center">
                 <span className="text-4xl font-black">{perfil.faltam}</span>
@@ -129,6 +151,7 @@ function App() {
               </div>
             </div>
 
+            {/* Grid de Informações */}
             <div className="grid grid-cols-3 gap-3 w-full mb-8">
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso Atual</p>
@@ -165,30 +188,30 @@ function App() {
           <ChatReceitas
             whatsapp={usuario}
             isVip={isVip}
-            perfil={perfil}
             aoPedirUpgrade={() => setBloqueado(true)}
+            aoAtualizarPerfil={() => verificarAcessoNoBanco(usuario)}
           />
         </div>
       )}
 
-      {/* MODAL DE ATIVAÇÃO VIP */}
       {bloqueado && (
         <div className="fixed inset-0 z-[500] bg-gray-950 flex flex-col items-center p-6 overflow-y-auto">
           <TelaPlanos aoEscolher={() => { }} />
           <div className="w-full max-w-xs mt-8 bg-gray-900 p-6 rounded-[2.5rem] border border-gray-800">
-            <h3 className="text-center font-black text-sm mb-4 uppercase">Já possui um código?</h3>
+            <h3 className="text-center font-black text-sm mb-4 uppercase">Já comprou?</h3>
+            <p className="text-[10px] text-gray-500 text-center mb-4 uppercase">Verifique seu e-mail da Kiwify pelo código.</p>
             <input
               type="text"
               placeholder="DIGITE SEU CÓDIGO..."
-              className="w-full bg-black border border-gray-800 p-4 rounded-2xl text-center mb-4 text-emerald-500 font-bold"
+              className="w-full bg-black border border-gray-800 p-4 rounded-2xl text-center mt-2 mb-4 text-emerald-500 font-bold"
               value={codigoInput}
-              onChange={(e) => setCodigoInput(e.target.value)}
+              onChange={(e) => setCodigoInput(e.target.value.toUpperCase())}
             />
-            <button onClick={handleAtivarVip} className="w-full bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase shadow-emerald-500/20 shadow-lg">
-              Validar Acesso
+            <button onClick={handleAtivarVip} className="w-full bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase shadow-lg">
+              Validar Código
             </button>
-            <button onClick={() => setBloqueado(false)} className="w-full text-gray-500 text-[10px] mt-6 font-black uppercase tracking-widest">
-              Fechar
+            <button onClick={() => setBloqueado(false)} className="w-full text-gray-500 text-[10px] mt-6 uppercase font-black tracking-widest">
+              Voltar ao Início
             </button>
           </div>
         </div>
