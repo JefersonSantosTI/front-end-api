@@ -184,7 +184,7 @@ function App() {
                 onClick={() => setAbaAtiva("treino")}
                 className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm hover:scale-[1.02] transition-transform flex items-center justify-center space-x-2"
               >
-                <span>💪</span> <span>Meus Treinos (Grátis)</span>
+                <span>💪</span> <span>Meus Treinos </span>
               </button>
             </div>
 
