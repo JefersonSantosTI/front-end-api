@@ -1,3 +1,4 @@
+import ListaExercicios from "./services/ListaExercicio";
 import { useState, useEffect, useCallback, useRef } from "react";
 import ChatReceitas from "./pages/ChatReceitas";
 import Login from "./components/Login";
@@ -9,6 +10,7 @@ function App() {
   const [abaAtiva, setAbaAtiva] = useState("home");
   const [bloqueado, setBloqueado] = useState(false);
   const [codigoInput, setCodigoInput] = useState("");
+  const [modalidadeAberta, setModalidadeAberta] = useState(null);
 
   const verificandoRef = useRef(false);
 
@@ -132,7 +134,7 @@ function App() {
           </header>
 
           <main className="w-full max-w-md flex-1 flex flex-col items-center">
-            {/* Gráfico de Progresso */}
+            {/* Gráfico de Meta */}
             <div className="relative w-56 h-56 mb-8 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90">
                 <circle cx="112" cy="112" r="100" stroke="#111827" strokeWidth="12" fill="transparent" />
@@ -149,22 +151,27 @@ function App() {
 
             {/* Grid de Informações */}
             <div className="grid grid-cols-3 gap-3 w-full mb-8">
+              {/* Card Peso */}
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso Atual</p>
                 <p className="text-sm font-bold">{perfil.peso}kg</p>
               </div>
+
+              {/* Card Altura */}
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Altura</p>
                 <p className="text-sm font-bold">{perfil.altura}m</p>
               </div>
+
+              {/* Card Foco/Meta */}
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Foco</p>
                 <p className="text-sm font-bold uppercase text-emerald-400">{perfil.meta}</p>
               </div>
             </div>
 
-            {/* --- BOTÕES PRINCIPAIS --- */}
             <div className="w-full space-y-4 mb-8">
+              {/* BOTÃO CHAT: MODO TRIAL ATIVADO (Permite entrar para gastar as 7 mensagens) */}
               <button
                 onClick={() => setAbaAtiva("chat")}
                 className="w-full bg-emerald-500 text-black font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm hover:scale-[1.02] transition-transform flex items-center justify-center space-x-2"
@@ -172,11 +179,12 @@ function App() {
                 <span>💬</span> <span>Abrir Chat Nutri</span>
               </button>
 
+              {/* BOTÃO TREINOS: ACESSO TOTALMENTE GRATUITO */}
               <button
                 onClick={() => setAbaAtiva("treino")}
                 className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm hover:scale-[1.02] transition-transform flex items-center justify-center space-x-2"
               >
-                <span>💪</span> <span>Meus Treinos</span>
+                <span>💪</span> <span>Meus Treinos (Grátis)</span>
               </button>
             </div>
 
@@ -195,6 +203,7 @@ function App() {
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Nutrição Inteligente</span>
             <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-[10px] font-black text-black">FIT</div>
           </header>
+          {/* O componente ChatReceitas recebe o isVip e cuida do contador interno de mensagens */}
           <ChatReceitas
             whatsapp={usuario}
             isVip={isVip}
@@ -206,21 +215,85 @@ function App() {
 
       {/* --- ABA TREINOS --- */}
       {abaAtiva === "treino" && (
-        <div className="flex-1 flex flex-col">
-          <header className="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center">
+        <div className="flex-1 flex flex-col bg-gray-950 overflow-y-auto">
+          <header className="p-4 bg-gray-900 border-b border-gray-800 flex justify-between items-center sticky top-0 z-10">
             <button onClick={() => setAbaAtiva("home")} className="text-blue-500 font-black text-xs uppercase">← Voltar</button>
             <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Central de Treinos</span>
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-[10px] font-black text-white">FIT</div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center">
-            <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mb-4">
-              <span className="text-4xl">🚧</span>
+          <div className="p-6 w-full max-w-md mx-auto space-y-6">
+            <div className="text-center mb-2">
+              <h2 className="text-2xl font-black uppercase italic text-blue-500">Protocolos Fit</h2>
+              <p className="text-[10px] text-gray-500 uppercase font-bold">Selecione sua modalidade</p>
             </div>
-            <h3 className="text-xl font-black uppercase mb-2">Área em Construção</h3>
-            <p className="text-gray-500 text-[10px] uppercase font-bold max-w-[200px]">
-              Jeferson, estamos preparando seus protocolos de hipertrofia. Em breve estarão disponíveis!
-            </p>
+
+            {/* BOTÃO ACADEMIA */}
+            <button
+              onClick={() => setModalidadeAberta('academia')}
+              className={`w-full bg-gray-900 border p-5 rounded-[2rem] flex items-center space-x-4 transition-all ${modalidadeAberta === 'academia' ? 'border-blue-600 ring-1 ring-blue-600' : 'border-gray-800'}`}
+            >
+              <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-blue-900/20">🏋️‍♂️</div>
+              <div className="text-left">
+                <h4 className="font-black uppercase text-sm">Foco Academia</h4>
+                <p className="text-[9px] text-gray-500 uppercase font-bold">Protocolos de Hipertrofia e Força</p>
+              </div>
+            </button>
+
+            {/* BOTÃO CASA */}
+            <button
+              onClick={() => setModalidadeAberta('casa')}
+              className={`w-full bg-gray-900 border p-5 rounded-[2rem] flex items-center space-x-4 transition-all ${modalidadeAberta === 'casa' ? 'border-emerald-500 ring-1 ring-emerald-500' : 'border-gray-800'}`}
+            >
+              <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/20">🏠</div>
+              <div className="text-left">
+                <h4 className="font-black uppercase text-sm">Treino em Casa</h4>
+                <p className="text-[9px] text-gray-500 uppercase font-bold">Queima de Gordura e Definição</p>
+              </div>
+            </button>
+
+            {/* BOTÃO GESTANTE */}
+            <button
+              onClick={() => setModalidadeAberta('gestante')}
+              className={`w-full bg-gray-900 border p-5 rounded-[2rem] flex items-center space-x-4 transition-all ${modalidadeAberta === 'gestante' ? 'border-pink-500 ring-1 ring-pink-500' : 'border-gray-800'}`}
+            >
+              <div className="w-16 h-16 bg-pink-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-pink-900/20">🤰</div>
+              <div className="text-left">
+                <h4 className="font-black uppercase text-sm">Gestante Fit</h4>
+                <p className="text-[9px] text-gray-500 uppercase font-bold">Saúde e Bem-estar no Pré-Natal</p>
+              </div>
+            </button>
+
+            {/* RENDERIZAÇÃO DA LISTA DE EXERCÍCIOS */}
+            {modalidadeAberta && (
+              <ListaExercicios
+                modalidade={modalidadeAberta} // 'academia', 'casa' ou 'gestante'
+                whatsapp={usuario}
+                API_URL={API_URL}
+                aoFechar={() => setModalidadeAberta(null)}
+              />
+            )}
+
+            {/* Banner de Conversão (Só aparece se não houver treino aberto para não poluir) */}
+            {!modalidadeAberta && (
+              <div className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-900 p-6 rounded-[2.5rem] shadow-xl border border-emerald-400/20 group mt-4">
+                <div className="relative z-10">
+                  <h3 className="text-white font-black uppercase italic text-lg leading-tight mb-2">Treino finalizado?</h3>
+                  <p className="text-emerald-100 text-[10px] leading-relaxed uppercase font-bold mb-4 opacity-90">
+                    Quer uma sugestão de refeição pós-treino para maximizar seus resultados agora?
+                  </p>
+                  <button
+                    onClick={() => setAbaAtiva("chat")}
+                    className="w-full bg-white text-emerald-700 font-black py-3 rounded-xl uppercase text-[10px] tracking-wider shadow-lg active:scale-95 transition-all"
+                  >
+                    🚀 Abrir Chat Nutri
+                  </button>
+                </div>
+                <div className="absolute -right-4 -bottom-4 text-6xl opacity-20 rotate-12 group-hover:scale-110 transition-transform">🥗</div>
+              </div>
+            )}
+
+
           </div>
         </div>
       )}
