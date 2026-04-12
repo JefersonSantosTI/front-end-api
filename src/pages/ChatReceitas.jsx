@@ -22,39 +22,41 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         const txt = texto.toLowerCase();
         let mudou = false;
 
-        // 1. Busca o Nome (Pega a palavra logo após "Obrigado" ou "Deyvid")
-        const matchNome = texto.match(/(?:Obrigado|Perfeito|Olá),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
+        // 1. EXTRAIR NOME: Busca após saudações comuns
+        const matchNome = texto.match(/(?:Obrigado|Perfeito|Olá|Deyvid|entendido),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
         if (matchNome?.[1]) {
             localStorage.setItem("perfil_nome", matchNome[1]);
             mudou = true;
         }
 
-        // 2. Busca o Peso (Procura por um número seguido de 'kg' ou perto da palavra 'Peso')
-        // Ex: "100kg" ou "Peso: 100"
+        // 2. EXTRAIR PESO: Busca números antes de 'kg' ou após 'peso'
+        // Aceita: "100kg", "100 kg", "peso: 100", "peso é 100"
         const matchPeso = txt.match(/(\d{2,3})\s*(?:kg|quilos)/i) || txt.match(/peso[:\s]*(\d{2,3})/i);
         if (matchPeso) {
             localStorage.setItem("perfil_peso", matchPeso[1]);
             mudou = true;
         }
 
-        // 3. Busca a Altura (Procura formato 1.82 ou 1,82)
+        // 3. EXTRAIR ALTURA: Busca formatos 1.82 ou 1,82
         const matchAltura = txt.match(/(\d[.,]\d{2})/);
         if (matchAltura) {
+            // Normaliza para o formato com ponto (1.82) para o banco/JS
             localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
             mudou = true;
         }
 
-        // 4. Busca o Foco (Emagrecimento ou Massa)
-        if (txt.includes("emagrecimento") || txt.includes("obesidade") || txt.includes("queima")) {
+        // 4. EXTRAIR FOCO: Busca palavras-chave de objetivo
+        if (txt.includes("emagrecimento") || txt.includes("obesidade") || txt.includes("queima") || txt.includes("perder")) {
             localStorage.setItem("perfil_meta", "Emagrecimento");
             mudou = true;
-        } else if (txt.includes("massa") || txt.includes("hipertrofia")) {
+        } else if (txt.includes("massa") || txt.includes("hipertrofia") || txt.includes("ganhar")) {
             localStorage.setItem("perfil_meta", "Massa Muscular");
             mudou = true;
         }
 
-        // IMPORTANTE: Se algo mudou, avisa o App.js para atualizar a tela
+        // 5. SE HOUVE MUDANÇA, ATUALIZA A HOME
         if (mudou) {
+            console.log("✅ Dados extraídos com sucesso!");
             if (typeof aoAtualizarPerfil === 'function') {
                 aoAtualizarPerfil();
             }
