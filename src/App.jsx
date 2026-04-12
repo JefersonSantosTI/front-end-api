@@ -29,7 +29,6 @@ function App() {
     const novoVip = localStorage.getItem("acesso_vip") === "true";
     const pesoSalvo = localStorage.getItem("perfil_peso") || "0";
 
-    // Mantendo sua lógica de fallback para a meta não ficar zerada
     const faltamSalvo = localStorage.getItem("perfil_faltam") || (parseFloat(pesoSalvo) * 0.1).toFixed(1);
 
     const novoPerfil = {
@@ -142,18 +141,15 @@ function App() {
           </header>
 
           <main className="w-full max-w-md flex-1 flex flex-col items-center">
-            {/* Gráfico de Meta */}
             <div className="relative w-56 h-56 mb-8 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90">
                 <circle cx="112" cy="112" r="100" stroke="#111827" strokeWidth="12" fill="transparent" />
                 <circle cx="112" cy="112" r="100" stroke="#10b981" strokeWidth="12" fill="transparent"
                   strokeDasharray="628"
-                  // Ajuste para o progresso do gráfico também refletir se há dados
                   strokeDashoffset={628 - (628 * (perfil.peso !== "0" ? 0.75 : 0.1))}
                   strokeLinecap="round" />
               </svg>
               <div className="absolute flex flex-col items-center">
-                {/* --- LOCAL DO SEU AJUSTE SOLICITADO --- */}
                 <span className="text-4xl font-black">
                   {perfil.faltam !== "0" && perfil.faltam !== "0.0"
                     ? perfil.faltam
@@ -163,7 +159,6 @@ function App() {
               </div>
             </div>
 
-            {/* Grid de Informações */}
             <div className="grid grid-cols-3 gap-3 w-full mb-8">
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso Atual</p>
@@ -235,6 +230,14 @@ function App() {
               <h2 className="text-2xl font-black uppercase italic text-blue-500">Protocolos Fit</h2>
               <p className="text-[10px] text-gray-500 uppercase font-bold">Selecione sua modalidade</p>
             </div>
+
+            {/* --- BOTÃO DE ATALHO PARA O CHAT NUTRI --- */}
+            <button
+              onClick={() => setAbaAtiva("chat")}
+              className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-black py-4 rounded-2xl shadow-lg uppercase text-[10px] hover:bg-emerald-500/20 transition-all flex items-center justify-center space-x-2"
+            >
+              <span>💬</span> <span>Precisa de uma Dieta? Clique Aqui</span>
+            </button>
 
             <button
               onClick={() => setModalidadeAberta('academia')}
