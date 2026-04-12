@@ -28,7 +28,6 @@ function App() {
   const sincronizarEstadosLocais = useCallback(() => {
     const novoVip = localStorage.getItem("acesso_vip") === "true";
     const pesoSalvo = localStorage.getItem("perfil_peso") || "0";
-
     const faltamSalvo = localStorage.getItem("perfil_faltam") || (parseFloat(pesoSalvo) * 0.1).toFixed(1);
 
     const novoPerfil = {
@@ -93,6 +92,7 @@ function App() {
       if (response.ok) {
         alert("💎 Parabéns! Seu acesso VIP foi liberado.");
         localStorage.setItem("acesso_vip", "true");
+        // Força a atualização imediata dos estados antes de fechar o modal
         await verificarAcessoNoBanco(usuario);
         setBloqueado(false);
         setCodigoInput("");
@@ -159,6 +159,7 @@ function App() {
               </div>
             </div>
 
+            {/* Grid de Informações */}
             <div className="grid grid-cols-3 gap-3 w-full mb-8">
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso Atual</p>
@@ -188,7 +189,7 @@ function App() {
                 onClick={() => setAbaAtiva("treino")}
                 className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm hover:scale-[1.02] transition-transform flex items-center justify-center space-x-2"
               >
-                <span>💪</span> <span>Meus Treinos </span>
+                <span>💪</span> <span>Meus Treinos</span>
               </button>
             </div>
 
@@ -231,7 +232,7 @@ function App() {
               <p className="text-[10px] text-gray-500 uppercase font-bold">Selecione sua modalidade</p>
             </div>
 
-            {/* --- BOTÃO DE ATALHO PARA O CHAT NUTRI --- */}
+            {/* --- ATALHO CHAT NUTRI --- */}
             <button
               onClick={() => setAbaAtiva("chat")}
               className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-black py-4 rounded-2xl shadow-lg uppercase text-[10px] hover:bg-emerald-500/20 transition-all flex items-center justify-center space-x-2"
@@ -246,7 +247,7 @@ function App() {
               <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-blue-900/20">🏋️‍♂️</div>
               <div className="text-left">
                 <h4 className="font-black uppercase text-sm">Foco Academia</h4>
-                <p className="text-[9px] text-gray-500 uppercase font-bold">Protocolos de Hipertrofia e Força</p>
+                <p className="text-[9px] text-gray-500 uppercase font-bold">Hipertrofia e Força</p>
               </div>
             </button>
 
@@ -257,7 +258,7 @@ function App() {
               <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-emerald-900/20">🏠</div>
               <div className="text-left">
                 <h4 className="font-black uppercase text-sm">Treino em Casa</h4>
-                <p className="text-[9px] text-gray-500 uppercase font-bold">Queima de Gordura e Definição</p>
+                <p className="text-[9px] text-gray-500 uppercase font-bold">Queima e Definição</p>
               </div>
             </button>
 
@@ -277,19 +278,19 @@ function App() {
       {bloqueado && (
         <div className="fixed inset-0 z-[500] bg-gray-950 flex flex-col items-center p-6 overflow-y-auto">
           <TelaPlanos aoEscolher={() => { }} />
-          <div className="w-full max-w-xs mt-8 bg-gray-900 p-6 rounded-[2.5rem] border border-gray-800">
+          <div className="w-full max-w-xs mt-8 bg-gray-900 p-6 rounded-[2.5rem] border border-gray-800 shadow-2xl">
             <h3 className="text-center font-black text-sm mb-4 uppercase">Já comprou?</h3>
             <input
               type="text"
               placeholder="DIGITE SEU CÓDIGO..."
-              className="w-full bg-black border border-gray-800 p-4 rounded-2xl text-center mt-2 mb-4 text-emerald-500 font-bold"
+              className="w-full bg-black border border-gray-800 p-4 rounded-2xl text-center mt-2 mb-4 text-emerald-500 font-bold outline-none focus:border-emerald-500 transition-colors"
               value={codigoInput}
               onChange={(e) => setCodigoInput(e.target.value.toUpperCase())}
             />
-            <button onClick={handleAtivarVip} className="w-full bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase shadow-lg">
+            <button onClick={handleAtivarVip} className="w-full bg-emerald-500 text-black font-black py-4 rounded-2xl uppercase shadow-lg active:scale-95 transition-transform">
               Validar Código
             </button>
-            <button onClick={() => setBloqueado(false)} className="w-full text-gray-500 text-[10px] mt-6 uppercase font-black tracking-widest">
+            <button onClick={() => setBloqueado(false)} className="w-full text-gray-500 text-[10px] mt-6 uppercase font-black tracking-widest hover:text-white transition-colors">
               Voltar ao Início
             </button>
           </div>
