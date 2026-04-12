@@ -22,37 +22,38 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         const txt = texto.toLowerCase();
         let mudou = false;
 
-        const regexNome = /(?:obrigado|perfeito|olá|oi|entendi|certo|ótimo|bom dia|boa noite),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i;
-        const matchNome = texto.match(regexNome);
+        // Captura o nome quando a IA diz "Obrigado, Eduardo" ou "Perfeito, Eduardo"
+        const matchNome = texto.match(/(?:Obrigado|Perfeito|olá|oi|Eduardo),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
         if (matchNome?.[1]) {
             localStorage.setItem("perfil_nome", matchNome[1]);
             mudou = true;
         }
 
-        const regexPeso = /(\d{2,3}[.,]?\d*)\s*(?:kg|quilos|kilos|peso)/i;
-        const matchPeso = txt.match(regexPeso);
+        // Melhorei a busca pelo peso dentro do texto da IA (ex: "Peso: 100kg")
+        const matchPeso = txt.match(/peso[:\s]*(\d{2,3})/i);
         if (matchPeso) {
-            const pesoLimpo = matchPeso[1].replace(',', '.');
-            const pesoNum = parseFloat(pesoLimpo);
-            localStorage.setItem("perfil_peso", pesoLimpo);
-            if (!localStorage.getItem("perfil_faltam")) {
-                localStorage.setItem("perfil_faltam", (pesoNum * 0.1).toFixed(1));
-            }
+            localStorage.setItem("perfil_peso", matchPeso[1]);
             mudou = true;
         }
 
-        const regexAltura = /(\d[.,]\d{2})/;
-        const matchAltura = txt.match(regexAltura);
+        // Melhorei a busca pela altura (ex: "1.82")
+        const matchAltura = txt.match(/(\d[.,]\d{2})/);
         if (matchAltura) {
             localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
             mudou = true;
         }
 
-        if (mudou && typeof aoAtualizarPerfil === "function") {
-            // Pequeno delay para garantir que o estado do chat já foi processado
-            setTimeout(() => {
-                aoAtualizarPerfil();
-            }, 100);
+        // Captura o Foco (Massa ou Emagrecimento)
+        if (txt.includes("massa")) {
+            localStorage.setItem("perfil_meta", "Massa Muscular");
+            mudou = true;
+        } else if (txt.includes("emagrecimento") || txt.includes("sobrepeso")) {
+            localStorage.setItem("perfil_meta", "Emagrecimento");
+            mudou = true;
+        }
+
+        if (mudou) {
+            aoAtualizarPerfil(); // Força o App.js a reler o localStorage
         }
     };
 
