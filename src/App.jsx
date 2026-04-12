@@ -25,12 +25,11 @@ function App() {
 
   const API_URL = "https://api-backend-treino-fit.onrender.com/api";
 
-  // --- AJUSTE 1: Sincronização Robusta ---
   const sincronizarEstadosLocais = useCallback(() => {
     const novoVip = localStorage.getItem("acesso_vip") === "true";
-
     const pesoSalvo = localStorage.getItem("perfil_peso") || "0";
-    // Cálculo simples para a meta não ficar em 0: se não houver meta, sugere 10% do peso
+
+    // Mantendo sua lógica de fallback para a meta não ficar zerada
     const faltamSalvo = localStorage.getItem("perfil_faltam") || (parseFloat(pesoSalvo) * 0.1).toFixed(1);
 
     const novoPerfil = {
@@ -46,7 +45,6 @@ function App() {
     setPerfil(novoPerfil);
   }, []);
 
-  // --- AJUSTE 2: Forçar atualização ao trocar de aba ---
   useEffect(() => {
     if (abaAtiva === "home") {
       sincronizarEstadosLocais();
@@ -150,12 +148,17 @@ function App() {
                 <circle cx="112" cy="112" r="100" stroke="#111827" strokeWidth="12" fill="transparent" />
                 <circle cx="112" cy="112" r="100" stroke="#10b981" strokeWidth="12" fill="transparent"
                   strokeDasharray="628"
-                  // Se o peso for 0, mostra 10% de progresso fake, se tiver peso, mostra progresso real
-                  strokeDashoffset={628 - (628 * (perfil.peso > 0 ? 0.75 : 0.1))}
+                  // Ajuste para o progresso do gráfico também refletir se há dados
+                  strokeDashoffset={628 - (628 * (perfil.peso !== "0" ? 0.75 : 0.1))}
                   strokeLinecap="round" />
               </svg>
               <div className="absolute flex flex-col items-center">
-                <span className="text-4xl font-black">{perfil.faltam}</span>
+                {/* --- LOCAL DO SEU AJUSTE SOLICITADO --- */}
+                <span className="text-4xl font-black">
+                  {perfil.faltam !== "0" && perfil.faltam !== "0.0"
+                    ? perfil.faltam
+                    : (parseFloat(perfil.peso) * 0.1).toFixed(0)}
+                </span>
                 <span className="text-[10px] text-emerald-500 font-bold uppercase">kg para a meta</span>
               </div>
             </div>
@@ -213,7 +216,6 @@ function App() {
             whatsapp={usuario}
             isVip={isVip}
             aoPedirUpgrade={() => setBloqueado(true)}
-            // Quando a IA extrai os dados, o Chat chama essa função
             aoAtualizarPerfil={sincronizarEstadosLocais}
           />
         </div>
@@ -229,7 +231,6 @@ function App() {
           </header>
 
           <div className="p-6 w-full max-w-md mx-auto space-y-6">
-            {/* ... (conteúdo de treinos permanece igual) */}
             <div className="text-center mb-2">
               <h2 className="text-2xl font-black uppercase italic text-blue-500">Protocolos Fit</h2>
               <p className="text-[10px] text-gray-500 uppercase font-bold">Selecione sua modalidade</p>

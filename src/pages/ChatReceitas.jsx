@@ -22,38 +22,42 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         const txt = texto.toLowerCase();
         let mudou = false;
 
-        // Captura o nome quando a IA diz "Obrigado, Eduardo" ou "Perfeito, Eduardo"
-        const matchNome = texto.match(/(?:Obrigado|Perfeito|olá|oi|Eduardo),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
+        // 1. Busca o Nome (Pega a palavra logo após "Obrigado" ou "Deyvid")
+        const matchNome = texto.match(/(?:Obrigado|Perfeito|Olá),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
         if (matchNome?.[1]) {
             localStorage.setItem("perfil_nome", matchNome[1]);
             mudou = true;
         }
 
-        // Melhorei a busca pelo peso dentro do texto da IA (ex: "Peso: 100kg")
-        const matchPeso = txt.match(/peso[:\s]*(\d{2,3})/i);
+        // 2. Busca o Peso (Procura por um número seguido de 'kg' ou perto da palavra 'Peso')
+        // Ex: "100kg" ou "Peso: 100"
+        const matchPeso = txt.match(/(\d{2,3})\s*(?:kg|quilos)/i) || txt.match(/peso[:\s]*(\d{2,3})/i);
         if (matchPeso) {
             localStorage.setItem("perfil_peso", matchPeso[1]);
             mudou = true;
         }
 
-        // Melhorei a busca pela altura (ex: "1.82")
+        // 3. Busca a Altura (Procura formato 1.82 ou 1,82)
         const matchAltura = txt.match(/(\d[.,]\d{2})/);
         if (matchAltura) {
             localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
             mudou = true;
         }
 
-        // Captura o Foco (Massa ou Emagrecimento)
-        if (txt.includes("massa")) {
-            localStorage.setItem("perfil_meta", "Massa Muscular");
-            mudou = true;
-        } else if (txt.includes("emagrecimento") || txt.includes("sobrepeso")) {
+        // 4. Busca o Foco (Emagrecimento ou Massa)
+        if (txt.includes("emagrecimento") || txt.includes("obesidade") || txt.includes("queima")) {
             localStorage.setItem("perfil_meta", "Emagrecimento");
+            mudou = true;
+        } else if (txt.includes("massa") || txt.includes("hipertrofia")) {
+            localStorage.setItem("perfil_meta", "Massa Muscular");
             mudou = true;
         }
 
+        // IMPORTANTE: Se algo mudou, avisa o App.js para atualizar a tela
         if (mudou) {
-            aoAtualizarPerfil(); // Força o App.js a reler o localStorage
+            if (typeof aoAtualizarPerfil === 'function') {
+                aoAtualizarPerfil();
+            }
         }
     };
 
