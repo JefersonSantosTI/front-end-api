@@ -3,7 +3,8 @@ import ListaMessagens from "../components/ListaMessagens";
 import ChatBox from "../components/ChatBox";
 import { api } from "../services/api";
 
-const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) => {
+// Adicionada a prop setTreinoIAPescado para sincronizar com o App.js
+const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setTreinoIAPescado }) => {
     const [loading, setLoading] = useState(false);
     const [mensagens, setMensagens] = useState([]);
     const [mostrarBotãoUpgrade, setMostrarBotãoUpgrade] = useState(false);
@@ -22,6 +23,14 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
         const txt = texto.toLowerCase();
         let mudou = false;
 
+        // --- NOVO: DETECÇÃO DE TREINO GERADO PELA IA ---
+        // Se o texto contém termos de treino, podemos avisar o App.js
+        if ((txt.includes("séries") || txt.includes("reps")) && typeof setTreinoIAPescado === 'function') {
+            console.log("💪 Treino identificado no texto!");
+            // Aqui você poderia passar o objeto formatado se sua API já retornar o JSON
+            // Por enquanto, apenas sinalizamos que um treino foi "pescado"
+        }
+
         // 1. EXTRAIR NOME: Busca após saudações comuns
         const matchNome = texto.match(/(?:Obrigado|Perfeito|Olá|Deyvid|entendido),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
         if (matchNome?.[1]) {
@@ -29,23 +38,21 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             mudou = true;
         }
 
-        // 2. EXTRAIR PESO: Busca números antes de 'kg' ou após 'peso'
-        // Aceita: "100kg", "100 kg", "peso: 100", "peso é 100"
+        // 2. EXTRAIR PESO
         const matchPeso = txt.match(/(\d{2,3})\s*(?:kg|quilos)/i) || txt.match(/peso[:\s]*(\d{2,3})/i);
         if (matchPeso) {
             localStorage.setItem("perfil_peso", matchPeso[1]);
             mudou = true;
         }
 
-        // 3. EXTRAIR ALTURA: Busca formatos 1.82 ou 1,82
+        // 3. EXTRAIR ALTURA
         const matchAltura = txt.match(/(\d[.,]\d{2})/);
         if (matchAltura) {
-            // Normaliza para o formato com ponto (1.82) para o banco/JS
             localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
             mudou = true;
         }
 
-        // 4. EXTRAIR FOCO: Busca palavras-chave de objetivo
+        // 4. EXTRAIR FOCO
         if (txt.includes("emagrecimento") || txt.includes("obesidade") || txt.includes("queima") || txt.includes("perder")) {
             localStorage.setItem("perfil_meta", "Emagrecimento");
             mudou = true;
@@ -54,7 +61,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             mudou = true;
         }
 
-        // 5. SE HOUVE MUDANÇA, ATUALIZA A HOME
         if (mudou) {
             console.log("✅ Dados extraídos com sucesso!");
             if (typeof aoAtualizarPerfil === 'function') {
@@ -98,11 +104,9 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
                 };
             });
 
-            // 1. Primeiro define as mensagens e UI
             setMostrarBotãoUpgrade(detectouBloqueioManual || detectouBloqueioIA);
             setMensagens(historicoFormatado);
 
-            // 2. Depois extrai dados apenas da última mensagem de forma isolada
             const ultimaMsgBot = [...dados].reverse().find(m => m.role === "assistant");
             if (ultimaMsgBot) {
                 extrairEGuardarDados(ultimaMsgBot.content);
@@ -146,8 +150,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil }) =>
             });
 
             const respostaTexto = response.data.resposta || "";
-
-            // ✅ EXTRAÇÃO REATIVA: Acontece aqui após o evento da API, evitando loops de efeito
             extrairEGuardarDados(respostaTexto);
 
             const atingiuLimiteAgora = !isVip && (msgsEnviadas + 1) >= LIMITE_FREE;

@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import TelaPlanos from "./components/TelaPlanos";
 
 function App() {
+  const [treinoIAPescado, setTreinoIAPescado] = useState(null);
   const [usuario, setUsuario] = useState(() => localStorage.getItem("usuario_whatsapp"));
   const [isVip, setIsVip] = useState(() => localStorage.getItem("acesso_vip") === "true");
   const [abaAtiva, setAbaAtiva] = useState("home");
@@ -60,6 +61,10 @@ function App() {
 
       if (response.ok) {
         const dados = await response.json();
+
+        // Sincroniza o treino da IA se existir no banco
+        if (dados.treinoIA) setTreinoIAPescado(dados.treinoIA);
+
         localStorage.setItem("perfil_nome", dados.nome || "Guerreiro(a)");
         localStorage.setItem("perfil_peso", dados.peso || "0");
         localStorage.setItem("perfil_altura", dados.altura || "0");
@@ -92,7 +97,6 @@ function App() {
       if (response.ok) {
         alert("💎 Parabéns! Seu acesso VIP foi liberado.");
         localStorage.setItem("acesso_vip", "true");
-        // Força a atualização imediata dos estados antes de fechar o modal
         await verificarAcessoNoBanco(usuario);
         setBloqueado(false);
         setCodigoInput("");
@@ -159,7 +163,6 @@ function App() {
               </div>
             </div>
 
-            {/* Grid de Informações */}
             <div className="grid grid-cols-3 gap-3 w-full mb-8">
               <div className="bg-gray-900/50 p-4 rounded-3xl border border-gray-800 text-center">
                 <p className="text-[8px] text-gray-500 uppercase font-black mb-1">Peso Atual</p>
@@ -213,6 +216,7 @@ function App() {
             isVip={isVip}
             aoPedirUpgrade={() => setBloqueado(true)}
             aoAtualizarPerfil={sincronizarEstadosLocais}
+            setTreinoIAPescado={setTreinoIAPescado}
           />
         </div>
       )}
@@ -232,7 +236,15 @@ function App() {
               <p className="text-[10px] text-gray-500 uppercase font-bold">Selecione sua modalidade</p>
             </div>
 
-            {/* --- ATALHO CHAT NUTRI --- */}
+            {treinoIAPescado && (
+              <div className="bg-blue-600/20 border border-blue-600/40 p-4 rounded-2xl text-center mb-4 animate-pulse">
+                <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest">
+                  ✨ Novo treino personalizado identificado!
+                </p>
+                <p className="text-[9px] text-gray-500 uppercase mt-1">Consulte as instruções no chat.</p>
+              </div>
+            )}
+
             <button
               onClick={() => setAbaAtiva("chat")}
               className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 font-black py-4 rounded-2xl shadow-lg uppercase text-[10px] hover:bg-emerald-500/20 transition-all flex items-center justify-center space-x-2"
@@ -265,6 +277,7 @@ function App() {
             {modalidadeAberta && (
               <ListaExercicios
                 modalidade={modalidadeAberta}
+                treinoExterno={treinoIAPescado}
                 whatsapp={usuario}
                 API_URL={API_URL}
                 aoFechar={() => setModalidadeAberta(null)}
