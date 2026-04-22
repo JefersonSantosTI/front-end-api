@@ -3,7 +3,6 @@ import ListaMessagens from "../components/ListaMessagens";
 import ChatBox from "../components/ChatBox";
 import { api } from "../services/api";
 
-// Adicionada a prop setTreinoIAPescado para sincronizar com o App.js
 const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setTreinoIAPescado }) => {
     const [loading, setLoading] = useState(false);
     const [mensagens, setMensagens] = useState([]);
@@ -23,15 +22,14 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
         const txt = texto.toLowerCase();
         let mudou = false;
 
-        // --- NOVO: DETECÇÃO DE TREINO GERADO PELA IA ---
-        // Se o texto contém termos de treino, podemos avisar o App.js
-        if ((txt.includes("séries") || txt.includes("reps")) && typeof setTreinoIAPescado === 'function') {
-            console.log("💪 Treino identificado no texto!");
-            // Aqui você poderia passar o objeto formatado se sua API já retornar o JSON
-            // Por enquanto, apenas sinalizamos que um treino foi "pescado"
+        // --- LÓGICA DO TREINO IA (Resolve o erro do setTreinoIAPescado) ---
+        if ((txt.includes("séries") || txt.includes("repetições") || txt.includes("treino montado")) && typeof setTreinoIAPescado === 'function') {
+            console.log("💪 Detectado novo treino no chat");
+            // Avisa o App.js que existe um novo treino para "pescar" do banco
+            setTreinoIAPescado(texto);
         }
 
-        // 1. EXTRAIR NOME: Busca após saudações comuns
+        // 1. EXTRAIR NOME
         const matchNome = texto.match(/(?:Obrigado|Perfeito|Olá|Deyvid|entendido),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
         if (matchNome?.[1]) {
             localStorage.setItem("perfil_nome", matchNome[1]);
@@ -40,32 +38,20 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
 
         // 2. EXTRAIR PESO
         const matchPeso = txt.match(/(\d{2,3})\s*(?:kg|quilos)/i) || txt.match(/peso[:\s]*(\d{2,3})/i);
-        if (matchPeso) {
+        if (matchPeso && matchPeso[1] !== "0") {
             localStorage.setItem("perfil_peso", matchPeso[1]);
             mudou = true;
         }
 
         // 3. EXTRAIR ALTURA
         const matchAltura = txt.match(/(\d[.,]\d{2})/);
-        if (matchAltura) {
+        if (matchAltura && matchAltura[1] !== "0.00") {
             localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
             mudou = true;
         }
 
-        // 4. EXTRAIR FOCO
-        if (txt.includes("emagrecimento") || txt.includes("obesidade") || txt.includes("queima") || txt.includes("perder")) {
-            localStorage.setItem("perfil_meta", "Emagrecimento");
-            mudou = true;
-        } else if (txt.includes("massa") || txt.includes("hipertrofia") || txt.includes("ganhar")) {
-            localStorage.setItem("perfil_meta", "Massa Muscular");
-            mudou = true;
-        }
-
-        if (mudou) {
-            console.log("✅ Dados extraídos com sucesso!");
-            if (typeof aoAtualizarPerfil === 'function') {
-                aoAtualizarPerfil();
-            }
+        if (mudou && typeof aoAtualizarPerfil === 'function') {
+            aoAtualizarPerfil();
         }
     };
 
@@ -88,29 +74,20 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
 
             const historicoFormatado = dados.map((msg, index) => {
                 let texto = msg.content || "";
-
                 if (isVip) {
                     texto = texto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "✅ (Liberado)")
-                        .replace(/Para visualizar o restante.*/gi, "Plano VIP Ativado! 💪")
-                        .replace(/clique no BOTÃO LARANJA.*/gi, "Acesso ilimitado.");
+                        .replace(/Para visualizar o restante.*/gi, "Plano VIP Ativado! 💪");
                 } else if (texto.toUpperCase().includes("BLOQUEADO")) {
                     detectouBloqueioIA = true;
                 }
-
-                return {
-                    id: index,
-                    texto,
-                    remetente: msg.role === "assistant" ? "bot" : "usuario"
-                };
+                return { id: index, texto, remetente: msg.role === "assistant" ? "bot" : "usuario" };
             });
 
             setMostrarBotãoUpgrade(detectouBloqueioManual || detectouBloqueioIA);
             setMensagens(historicoFormatado);
 
             const ultimaMsgBot = [...dados].reverse().find(m => m.role === "assistant");
-            if (ultimaMsgBot) {
-                extrairEGuardarDados(ultimaMsgBot.content);
-            }
+            if (ultimaMsgBot) extrairEGuardarDados(ultimaMsgBot.content);
 
         } catch (error) {
             console.error("Erro ao carregar histórico:", error);
@@ -152,13 +129,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
             const respostaTexto = response.data.resposta || "";
             extrairEGuardarDados(respostaTexto);
 
-            const atingiuLimiteAgora = !isVip && (msgsEnviadas + 1) >= LIMITE_FREE;
-            const iaBloqueou = respostaTexto.toUpperCase().includes("BLOQUEADO");
-
-            if (iaBloqueou || atingiuLimiteAgora) {
-                setMostrarBotãoUpgrade(true);
-            }
-
             setMensagens(prev => [...prev, {
                 id: Date.now() + 1,
                 texto: isVip ? respostaTexto.replace(/\[CONTEÚDO BLOQUEADO\]/g, "").replace(/Para visualizar o restante.*/gi, "") : respostaTexto,
@@ -166,7 +136,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
             }]);
         } catch (error) {
             console.error("Erro ao enviar:", error);
-            setMensagens(prev => [...prev, { id: Date.now() + 2, texto: "Ops! Tente novamente. 😢", remetente: "bot" }]);
         } finally {
             setLoading(false);
         }
@@ -175,56 +144,25 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
     return (
         <div className="flex flex-col h-full font-sans bg-gray-950 text-white">
             <main className="flex-1 relative overflow-hidden bg-gray-950">
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-
                 <div className="absolute inset-0 overflow-y-auto px-4 py-4 z-10 custom-scrollbar">
                     <div className="max-w-2xl mx-auto w-full pb-10">
                         <ListaMessagens mensagens={mensagens} loading={loading} />
-
                         {mostrarBotãoUpgrade && !isVip && (
-                            <div className="w-full mt-8 mb-12 flex flex-col items-center animate-bounce-slow">
-                                <button
-                                    onClick={aoPedirUpgrade}
-                                    className="w-full max-w-xs bg-orange-500 text-white font-black py-5 rounded-[2rem] shadow-[0_10px_20px_rgba(249,115,22,0.4)] hover:scale-[1.05] transition-all uppercase text-sm flex items-center justify-center gap-2"
-                                >
+                            <div className="w-full mt-8 flex flex-col items-center">
+                                <button onClick={aoPedirUpgrade} className="w-full max-w-xs bg-orange-500 text-white font-black py-5 rounded-[2rem] shadow-lg uppercase text-sm">
                                     🚀 Liberar Acesso VIP Agora
                                 </button>
-                                <p className="text-[10px] text-orange-400 mt-4 font-black uppercase tracking-widest bg-orange-500/10 px-4 py-2 rounded-full border border-orange-500/20">
-                                    Limite de mensagens free atingido
-                                </p>
                             </div>
                         )}
-
                         <div ref={scrollRef} className="h-4 w-full" />
                     </div>
                 </div>
             </main>
-
             <footer className="bg-gray-950 px-4 pb-6 pt-2 z-30">
                 <div className="max-w-2xl mx-auto">
-                    <ChatBox
-                        onEnviarMensagem={onEnviarMensagem}
-                        desabilitado={loading || (mostrarBotãoUpgrade && !isVip)}
-                    />
-                    {mostrarBotãoUpgrade && !isVip && (
-                        <p className="text-center text-orange-500/80 text-[9px] font-black uppercase mt-3 tracking-tighter animate-pulse">
-                            🔒 Chat bloqueado. Assine o plano VIP para continuar.
-                        </p>
-                    )}
+                    <ChatBox onEnviarMensagem={onEnviarMensagem} desabilitado={loading || (mostrarBotãoUpgrade && !isVip)} />
                 </div>
             </footer>
-
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #10b981; }
-                @keyframes bounce-slow {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-5px); }
-                }
-                .animate-bounce-slow { animation: bounce-slow 2s infinite; }
-            `}} />
         </div>
     );
 };

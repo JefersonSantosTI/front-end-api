@@ -1,113 +1,104 @@
 import { useState, useEffect } from "react";
-import { PROTOCOLOS_TREINO } from "./treinos.js";
 
-const ListaExercicios = ({ whatsapp, aoFechar, API_URL, treinoExterno, modalidade }) => {
-  // Função para converter o texto bruto da IA em objetos de exercício
-  const formatarTreinoIA = (texto) => {
-    if (!texto) return null;
-
-    const linhas = texto.split("\n");
-    const exerciciosEncontrados = [];
-
-    // Expressão regular para capturar: Nome do exercício, séries e repetições
-    // Ex: "1. Agachamento Livre - 4 séries x 8 repetições"
-    linhas.forEach((linha) => {
-      if (linha.includes("séries") || linha.includes("x")) {
-        const nome = linha.split(/[0-9]/)[0].replace(/[.*-]/g, "").trim();
-        const infoSéries = linha.match(/(\d+)\s*séries/i);
-        const infoReps = linha.match(/(\d+)\s*repetições/i) || linha.match(/x\s*(\d+)/i);
-
-        exerciciosEncontrados.push({
-          nome: nome || "Exercício Personalizado",
-          series: infoSéries ? infoSéries[1] : "3",
-          reps: infoReps ? infoReps[1] : "10",
-          gif: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueGZ3bmZ3bmZ3bmZ3/3o7TKMGpxx8G/giphy.gif" // Gif genérico para IA
-        });
-      }
-    });
-
-    return exerciciosEncontrados.length > 0 ? exerciciosEncontrados : null;
-  };
-
-  const [etapa, setEtapa] = useState(treinoExterno ? 'exercicios' : 'categorias');
-
-  // CORREÇÃO AQUI: Prioriza o treinoExterno se ele existir
-  const [grupoAtivo, setGrupoAtivo] = useState(() => {
-    const treinoTraduzido = formatarTreinoIA(treinoExterno);
-    if (treinoTraduzido) {
-      return { nome: "Treino Personalizado da IA", exercicios: treinoTraduzido };
-    }
-    return PROTOCOLOS_TREINO[modalidade]?.grupos[0] || null;
-  });
-
-  const [cargas, setCargas] = useState({});
+const ListaExercicios = ({ whatsapp, aoFechar, API_URL, modalidade, perfil }) => {
+  // Verificando se já tem peso no perfil que veio do App.js
+  const [etapa, setEtapa] = useState('verificando');
+  const [grupoAtivo, setGrupoAtivo] = useState(null);
   const [timer, setTimer] = useState(0);
   const [descansando, setDescansando] = useState(false);
   const [carregandoIA, setCarregandoIA] = useState(false);
+
+  const [tempPerfil, setTempPerfil] = useState({
+    nome: "", peso: "", altura: "", idade: "", genero: "Masculino"
+  });
+
+  // SINCRONIZAÇÃO: Se o perfil mudar (pelo chat), atualiza a etapa do treino
+  useEffect(() => {
+    if (perfil && perfil.peso !== "0") {
+      setEtapa('escolher_objetivo');
+    } else {
+      setEtapa('configuracao_inicial');
+    }
+  }, [perfil]);
 
   useEffect(() => {
     let interval;
     if (descansando && timer > 0) {
       interval = setInterval(() => setTimer((t) => t - 1), 1000);
-    } else if (timer === 0) {
-      setDescansando(false);
-    }
+    } else if (timer === 0) setDescansando(false);
     return () => clearInterval(interval);
   }, [descansando, timer]);
 
-  const iniciarDescanso = (segundos) => {
-    setTimer(segundos || 60);
-    setDescansando(true);
-  };
+  const salvarPerfilRapido = async () => {
+    if (!tempPerfil.peso || !tempPerfil.altura) return alert("Preencha peso e altura!");
 
-  const buscarTreinoIA = async (objetivo) => {
     setCarregandoIA(true);
     try {
-      const response = await fetch(`${API_URL}/usuarios/gerar-treino-ia`, {
+      await fetch(`${API_URL}/usuarios/atualizar-perfil`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ whatsapp, objetivo })
+        body: JSON.stringify({ whatsapp, ...tempPerfil })
       });
-      const dadosIA = await response.json();
 
-      setGrupoAtivo({
-        nome: `Protocolo IA: ${objetivo}`,
-        exercicios: dadosIA.exercicios
-      });
-      setEtapa('exercicios');
+      // Atualizamos o local para garantir consistência
+      localStorage.setItem("perfil_peso", tempPerfil.peso);
+      localStorage.setItem("perfil_altura", tempPerfil.altura);
+
+      setEtapa('escolher_objetivo');
     } catch {
-      alert("Erro ao conectar com o Coach IA.");
+      alert("Erro ao salvar perfil.");
     } finally {
       setCarregandoIA(false);
     }
   };
 
-  const overlayStyle = "fixed inset-0 z-[600] flex flex-col items-center justify-center p-4 bg-black/95 backdrop-blur-2xl";
+  const gerarTreinoInteligente = async (objetivo) => {
+    setCarregandoIA(true);
+    // Usa os dados do perfil vindo do App.js
+    const peso = perfil.peso;
+    const altura = perfil.altura;
 
-  if (etapa === 'categorias') {
+    try {
+      const response = await fetch(`${API_URL}/usuarios/gerar-treino-ia`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          whatsapp,
+          objetivo: `${objetivo} para alguém de ${peso}kg e ${altura}cm, focado em ${modalidade}`
+        })
+      });
+
+      const dadosIA = await response.json();
+      setGrupoAtivo({
+        nome: `${objetivo} - ${modalidade.toUpperCase()}`,
+        exercicios: dadosIA.exercicios
+      });
+      setEtapa('exercicios');
+    } catch {
+      alert("Erro ao conectar com o Coach Digital.");
+    } finally {
+      setCarregandoIA(false);
+    }
+  };
+
+  const overlayStyle = "fixed inset-0 z-[600] flex flex-col items-center justify-center p-6 bg-gray-950/98 backdrop-blur-xl";
+
+  if (etapa === 'verificando') return null;
+
+  if (etapa === 'configuracao_inicial') {
     return (
       <div className={overlayStyle}>
-        <div className="w-full max-w-md bg-gray-900/50 rounded-[3rem] border border-white/10 p-8 shadow-2xl">
-          <button onClick={aoFechar} className="text-gray-500 text-[10px] font-black uppercase mb-6 tracking-widest hover:text-white">← Voltar</button>
-          <h2 className="text-white text-3xl font-black italic uppercase tracking-tighter mb-2">Método Fit</h2>
+        <div className="w-full max-w-sm bg-gray-900 border border-white/10 p-8 rounded-[2.5rem] shadow-2xl">
+          <button onClick={aoFechar} className="absolute top-6 right-6 text-gray-500 font-black italic">X</button>
+          <h2 className="text-white text-xl font-black uppercase italic mb-2 text-center">Personalizar Treino</h2>
+          <p className="text-gray-500 text-[10px] font-bold uppercase mb-6 text-center">Precisamos de 2 dados rápidos</p>
           <div className="space-y-4">
-            <button onClick={() => setEtapa('objetivo_ia')} className="w-full bg-gradient-to-r from-blue-600 to-blue-400 p-6 rounded-3xl flex justify-between items-center active:scale-95 transition-all">
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">🤖</span>
-                <div className="text-left">
-                  <p className="text-black font-black uppercase italic">Coach IA</p>
-                  <p className="text-black/60 text-[9px] font-bold uppercase">Baseado no seu Perfil</p>
-                </div>
-              </div>
-            </button>
-            <button onClick={() => setEtapa('exercicios')} className="w-full bg-white/5 border border-white/10 p-6 rounded-3xl flex justify-between items-center active:scale-95 transition-all">
-              <div className="flex items-center gap-4">
-                <span className="text-2xl">📋</span>
-                <div className="text-left">
-                  <p className="text-white font-black uppercase italic">Protocolo Padrão</p>
-                  <p className="text-gray-500 text-[9px] font-bold uppercase">Treino {modalidade}</p>
-                </div>
-              </div>
+            <input type="number" placeholder="PESO (KG)" className="w-full bg-black p-4 rounded-2xl text-white font-bold outline-none border border-white/5"
+              onChange={e => setTempPerfil({ ...tempPerfil, peso: e.target.value })} />
+            <input type="number" placeholder="ALTURA (CM)" className="w-full bg-black p-4 rounded-2xl text-white font-bold outline-none border border-white/5"
+              onChange={e => setTempPerfil({ ...tempPerfil, altura: e.target.value })} />
+            <button onClick={salvarPerfilRapido} className="w-full bg-emerald-500 p-4 rounded-2xl text-black font-black uppercase italic active:scale-95 transition-all">
+              {carregandoIA ? "Salvando..." : "Salvar e Continuar →"}
             </button>
           </div>
         </div>
@@ -115,21 +106,37 @@ const ListaExercicios = ({ whatsapp, aoFechar, API_URL, treinoExterno, modalidad
     );
   }
 
-  if (etapa === 'objetivo_ia') {
+  if (etapa === 'escolher_objetivo') {
     return (
       <div className={overlayStyle}>
-        <div className="w-full max-w-md bg-gray-900 rounded-[3rem] border border-white/10 p-8 text-center shadow-2xl">
-          <h2 className="text-white text-xl font-black italic uppercase mb-8">Foco do Coach</h2>
+        <div className="w-full max-w-sm text-center">
+          <button onClick={aoFechar} className="text-gray-500 text-[10px] font-black uppercase mb-8 tracking-[0.2em]">← Voltar</button>
+          <h2 className="text-white text-2xl font-black uppercase italic mb-2">Foco em {modalidade}</h2>
+
           {carregandoIA ? (
-            <div className="py-12 flex flex-col items-center">
-              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-blue-500 font-black mt-6 animate-pulse uppercase italic text-sm">Gerando Treino...</p>
+            <div className="flex flex-col items-center py-10">
+              <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-emerald-500 font-black text-[10px] uppercase mt-4 animate-pulse">Criando seu protocolo...</p>
             </div>
           ) : (
-            <div className="grid gap-4">
-              <button onClick={() => buscarTreinoIA('Hipertrofia')} className="bg-blue-600 p-6 rounded-[2rem] font-black uppercase italic text-white shadow-lg active:scale-95">💪 Hipertrofia</button>
-              <button onClick={() => buscarTreinoIA('Definição')} className="bg-emerald-500 p-6 rounded-[2rem] font-black uppercase italic text-black shadow-lg active:scale-95">🔥 Queima</button>
-              <button onClick={() => setEtapa('categorias')} className="text-gray-600 text-[10px] mt-4 uppercase font-bold">Voltar</button>
+            <div className="space-y-4 mt-6">
+              <button onClick={() => gerarTreinoInteligente("Hipertrofia")}
+                className="w-full bg-blue-600 p-6 rounded-[2rem] flex items-center justify-between active:scale-95 transition-all">
+                <div className="text-left">
+                  <span className="block text-white font-black uppercase italic text-lg">Hipertrofia</span>
+                  <span className="text-blue-200 text-[9px] font-bold uppercase">Volume e Massa</span>
+                </div>
+                <span className="text-3xl">💪</span>
+              </button>
+
+              <button onClick={() => gerarTreinoInteligente("Queima de Gordura")}
+                className="w-full bg-emerald-500 p-6 rounded-[2rem] flex items-center justify-between active:scale-95 transition-all">
+                <div className="text-left">
+                  <span className="block text-black font-black uppercase italic text-lg">Queimar</span>
+                  <span className="text-emerald-900 text-[9px] font-bold uppercase">Definição e Gasto</span>
+                </div>
+                <span className="text-3xl">🔥</span>
+              </button>
             </div>
           )}
         </div>
@@ -139,37 +146,32 @@ const ListaExercicios = ({ whatsapp, aoFechar, API_URL, treinoExterno, modalidad
 
   return (
     <div className="fixed inset-0 z-[700] bg-black flex flex-col">
-      <header className="p-6 bg-gray-950 border-b border-white/5 flex justify-between items-center sticky top-0 z-10">
+      <header className="p-6 bg-gray-950 border-b border-white/5 flex justify-between items-center">
         <div>
-          <button onClick={aoFechar} className="text-blue-500 font-black text-xs uppercase mb-1">← Sair</button>
-          <h3 className="text-white font-black italic uppercase text-lg leading-tight">{grupoAtivo?.nome}</h3>
+          <button onClick={() => setEtapa('escolher_objetivo')} className="text-emerald-500 font-black text-xs uppercase mb-1">← Mudar Foco</button>
+          <h3 className="text-white font-black italic uppercase text-lg">{grupoAtivo?.nome}</h3>
         </div>
         {descansando && (
           <div className="bg-emerald-500 px-4 py-2 rounded-2xl flex flex-col items-center animate-pulse">
-            <span className="text-[8px] text-black font-black uppercase">Descanso</span>
-            <span className="text-lg font-black text-black leading-none">{timer}s</span>
+            <span className="text-lg font-black text-black">{timer}s</span>
           </div>
         )}
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-24 text-white">
         {grupoAtivo?.exercicios.map((ex, idx) => (
           <div key={idx} className="bg-gray-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden">
-            <div className="w-full h-48 bg-black relative">
-              <img src={ex.gif} alt={ex.nome} className="w-full h-full object-contain opacity-80" />
-            </div>
+            {ex.gif && (
+              <div className="w-full h-48 bg-black relative">
+                <img src={ex.gif} alt={ex.nome} className="w-full h-full object-contain opacity-70" />
+              </div>
+            )}
             <div className="p-6">
               <h4 className="text-white text-xl font-black uppercase italic mb-1">{ex.nome}</h4>
               <p className="text-[10px] font-bold text-gray-500 uppercase mb-4">{ex.series} Séries x {ex.reps} Reps</p>
               <div className="flex gap-3">
-                <input
-                  type="number"
-                  placeholder="kg"
-                  className="bg-black/50 border border-white/10 rounded-2xl p-4 text-white font-black text-center w-24 outline-none focus:border-blue-500"
-                  value={cargas[idx] || ""}
-                  onChange={(e) => setCargas({ ...cargas, [idx]: e.target.value })}
-                />
-                <button onClick={() => iniciarDescanso(60)} className="flex-1 bg-gray-800 p-4 rounded-2xl text-[10px] font-black uppercase hover:bg-gray-700 active:scale-95 transition-all">⏱️ Descanso</button>
+                <input type="number" placeholder="kg" className="bg-black/50 border border-white/10 rounded-2xl p-4 text-white font-black text-center w-24 outline-none focus:border-emerald-500" />
+                <button onClick={() => { setTimer(60); setDescansando(true); }} className="flex-1 bg-gray-800 p-4 rounded-2xl text-[10px] font-black uppercase active:bg-gray-700">⏱️ Descanso</button>
               </div>
             </div>
           </div>
