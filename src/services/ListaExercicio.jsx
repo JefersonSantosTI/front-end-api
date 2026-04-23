@@ -54,33 +54,40 @@ const ListaExercicios = ({ whatsapp, aoFechar, API_URL, modalidade, perfil }) =>
 
   const gerarTreinoInteligente = async (objetivo) => {
     setCarregandoIA(true);
-    // Usa os dados do perfil vindo do App.js
-    const peso = perfil.peso;
-    const altura = perfil.altura;
-
     try {
       const response = await fetch(`${API_URL}/usuarios/gerar-treino-ia`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           whatsapp,
-          objetivo: `${objetivo} para alguém de ${peso}kg e ${altura}cm, focado em ${modalidade}`
+          // Forçamos a IA a responder em um formato que o código entenda
+          objetivo: `Gere um treino de ${objetivo} para ${modalidade}. Responda APENAS um array JSON com objetos contendo nome, series, reps. Exemplo: [{"nome": "Supino", "series": 3, "reps": "12"}]`
         })
       });
 
       const dadosIA = await response.json();
+
+      // Como a IA pode retornar texto, precisamos tratar:
+      let exerciciosTratados = [];
+      try {
+        // Se a resposta vier como string dentro de 'resposta', tentamos converter
+        exerciciosTratados = JSON.parse(dadosIA.resposta);
+      } catch {
+        // Se falhar o parse, criamos um item visual para o usuário não ver erro
+        exerciciosTratados = [{ nome: "Verifique o Chat", series: "IA", reps: "Gerando..." }];
+      }
+
       setGrupoAtivo({
-        nome: `${objetivo} - ${modalidade.toUpperCase()}`,
-        exercicios: dadosIA.exercicios
+        nome: `${objetivo}`,
+        exercicios: exerciciosTratados
       });
       setEtapa('exercicios');
     } catch {
-      alert("Erro ao conectar com o Coach Digital.");
+      alert("Erro ao conectar com o Coach.");
     } finally {
       setCarregandoIA(false);
     }
   };
-
   const overlayStyle = "fixed inset-0 z-[600] flex flex-col items-center justify-center p-6 bg-gray-950/98 backdrop-blur-xl";
 
   if (etapa === 'verificando') return null;
