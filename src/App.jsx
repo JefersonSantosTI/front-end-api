@@ -4,6 +4,8 @@ import ChatReceitas from "./pages/ChatReceitas";
 import Login from "./components/Login";
 import TelaPlanos from "./components/TelaPlanos";
 
+// ... (mantenha seus imports iguais)
+
 function App() {
   const [treinoIAPescado, setTreinoIAPescado] = useState(null);
   const [usuario, setUsuario] = useState(() => localStorage.getItem("usuario_whatsapp"));
@@ -14,29 +16,47 @@ function App() {
 
   const verificandoRef = useRef(false);
 
+  // ESTADO DO PERFIL COM IMC E TMB JÁ INTEGRADOS
   const [perfil, setPerfil] = useState({
     nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
     peso: localStorage.getItem("perfil_peso") || "0",
     altura: localStorage.getItem("perfil_altura") || "0",
     meta: localStorage.getItem("perfil_meta") || "Emagrecimento",
     faltam: localStorage.getItem("perfil_faltam") || "0",
+    imc: "0",
+    tmb: "0"
   });
 
   const API_URL = "https://api-backend-treino-fit.onrender.com/api";
 
   const sincronizarEstadosLocais = useCallback(() => {
-    const p = localStorage.getItem("perfil_peso") || "0";
-    const a = localStorage.getItem("perfil_altura") || "0";
+    const p = parseFloat(localStorage.getItem("perfil_peso") || "0");
+    const a = parseFloat(localStorage.getItem("perfil_altura") || "0");
+    const n = localStorage.getItem("perfil_nome") || "Guerreiro(a)";
+    const m = localStorage.getItem("perfil_meta") || "Emagrecimento";
     const v = localStorage.getItem("acesso_vip") === "true";
-    const pNum = parseFloat(p);
-    const faltaCalc = pNum > 0 ? (pNum * 0.1).toFixed(1) : "0";
+
+    // CÁLCULOS AUTOMÁTICOS
+    let imcCalc = "0";
+    let tmbCalc = "0";
+
+    if (p > 0 && a > 0) {
+      // IMC
+      imcCalc = (p / (a * a)).toFixed(1);
+      // TMB Simplificada (Média geral para guiar a IA)
+      tmbCalc = (10 * p + (6.25 * (a * 100)) - (5 * 30)).toFixed(0);
+    }
+
+    const faltaCalc = p > 0 ? (p * 0.1).toFixed(1) : "0";
 
     setPerfil({
-      nome: localStorage.getItem("perfil_nome") || "Guerreiro(a)",
-      peso: p,
-      altura: a,
-      meta: localStorage.getItem("perfil_meta") || "Emagrecimento",
+      nome: n,
+      peso: String(p),
+      altura: String(a),
+      meta: m,
       faltam: localStorage.getItem("perfil_faltam") !== "0" ? localStorage.getItem("perfil_faltam") : faltaCalc,
+      imc: imcCalc,
+      tmb: tmbCalc
     });
     setIsVip(v);
   }, []);
@@ -53,23 +73,15 @@ function App() {
       if (response.ok) {
         const dados = await response.json();
 
-        // 1. SÓ ATUALIZA SE OS DADOS FOREM VÁLIDOS (Resolve o "aparece e some")
         if (dados.nome) localStorage.setItem("perfil_nome", dados.nome);
-
-        // Validação de Peso e Altura: Só grava se for > 0
-        if (dados.peso && Number(dados.peso) > 0) {
-          localStorage.setItem("perfil_peso", String(dados.peso));
-        }
-        if (dados.altura && Number(dados.altura) > 0) {
-          localStorage.setItem("perfil_altura", String(dados.altura));
-        }
-
+        if (dados.peso && Number(dados.peso) > 0) localStorage.setItem("perfil_peso", String(dados.peso));
+        if (dados.altura && Number(dados.altura) > 0) localStorage.setItem("perfil_altura", String(dados.altura));
         if (dados.meta) localStorage.setItem("perfil_meta", dados.meta);
         localStorage.setItem("acesso_vip", dados.pago ? "true" : "false");
 
-        // 2. PESCA O TREINO SE EXISTIR
         if (dados.treinoIA) setTreinoIAPescado(dados.treinoIA);
 
+        // Ao rodar isso, o perfil já ganha IMC e TMB na hora
         sincronizarEstadosLocais();
       }
     } catch (err) {
@@ -78,6 +90,7 @@ function App() {
       verificandoRef.current = false;
     }
   }, [API_URL, sincronizarEstadosLocais, usuario]);
+
 
   useEffect(() => {
     if (usuario) verificarAcessoNoBanco();
