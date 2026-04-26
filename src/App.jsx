@@ -6,7 +6,7 @@ import TelaPlanos from "./components/TelaPlanos";
 
 function App() {
   const [usuario, setUsuario] = useState(() => localStorage.getItem("usuario_whatsapp"));
-  const [etapa, setEtapa] = useState("verificando"); // 'verificando', 'login', 'onboarding', 'home'
+  const [etapa, setEtapa] = useState("verificando");
   const [abaAtiva, setAbaAtiva] = useState("home");
   const [isVip, setIsVip] = useState(false);
   const [treinoIAPescado, setTreinoIAPescado] = useState(null);
@@ -24,11 +24,8 @@ function App() {
   });
 
   const API_URL = "https://api-backend-treino-fit.onrender.com/api";
-
-  // Ref para evitar múltiplas chamadas simultâneas à API
   const verificandoRef = useRef(false);
 
-  // 1. CÁLCULO DE BIOMETRIA
   const calcularSaude = useCallback((peso, altura) => {
     const p = parseFloat(peso) || 0;
     const a = parseFloat(altura) || 0;
@@ -41,7 +38,6 @@ function App() {
     return { imc: "0", tmb: "0", falta: "0" };
   }, []);
 
-  // 2. SINCRONIZAÇÃO COM O BANCO
   const sincronizarComBanco = useCallback(async (whatsappId) => {
     if (!whatsappId || verificandoRef.current) return;
 
@@ -53,8 +49,7 @@ function App() {
       if (response.ok) {
         const dados = await response.json();
 
-        // Se não tiver peso ou altura, obriga o onboarding
-        if (!dados.peso || dados.peso === 0 || !dados.altura) {
+        if (!dados.peso || dados.peso === 0) {
           setEtapa("onboarding");
         } else {
           const saude = calcularSaude(dados.peso, dados.altura);
@@ -66,30 +61,32 @@ function App() {
             ...saude
           });
           setIsVip(dados.pago === true);
-          if (dados.treinoIA) setTreinoIAPescado(dados.treinoIA);
+          setTreinoIAPescado(dados.treinoIA || null);
           setEtapa("home");
         }
       } else {
-        // Usuário não encontrado ou erro: vai para onboarding
+        // Se der 404 ou 500, entendemos que é um usuário novo/problema de rede
         setEtapa("onboarding");
       }
     } catch (err) {
-      console.error("Erro ao sincronizar perfil:", err);
-      setEtapa("login");
+      console.error("Erro de conexão:", err);
+      setEtapa("onboarding"); // Melhor ir para onboarding do que travar
     } finally {
       verificandoRef.current = false;
     }
   }, [API_URL, calcularSaude]);
 
+  // EFEITO CORRIGIDO: Só dispara se estiver em modo 'verificando'
   useEffect(() => {
     if (usuario) {
-      sincronizarComBanco(usuario);
+      if (etapa === "verificando") {
+        sincronizarComBanco(usuario);
+      }
     } else {
       setEtapa("login");
     }
-  }, [usuario, sincronizarComBanco]);
+  }, [usuario, etapa, sincronizarComBanco]);
 
-  // 3. AÇÕES (HANDLERS)
   const handleLogin = (whatsapp) => {
     const limpo = String(whatsapp).replace(/\D/g, "");
     localStorage.setItem("usuario_whatsapp", limpo);
@@ -104,7 +101,7 @@ function App() {
 
   const salvarOnboarding = async () => {
     if (!perfil.nome || !perfil.peso || !perfil.altura) {
-      alert("Por favor, preencha todos os campos para continuar!");
+      alert("Preencha todos os campos!");
       return;
     }
 
@@ -122,18 +119,17 @@ function App() {
       });
 
       if (response.ok) {
-        // Recarrega os dados do banco para garantir que a Home suba limpa
-        sincronizarComBanco(usuario);
+        // Em vez de chamar a API de novo, calcula local e entra
+        const saude = calcularSaude(perfil.peso, perfil.altura);
+        setPerfil(prev => ({ ...prev, ...saude }));
+        setEtapa("home");
       } else {
-        alert("Erro ao salvar perfil. Tente novamente.");
+        alert("Erro ao salvar. Tente novamente.");
       }
-    } catch (err) {
-      console.error("Erro no fetch do onboarding:", err);
+    } catch {
       alert("Erro de conexão com o servidor.");
     }
   };
-
-  // --- RENDERS CONDICIONAIS ---
 
   if (etapa === "verificando") {
     return (
@@ -153,64 +149,25 @@ function App() {
         <p className="text-gray-400 text-center text-sm mb-8 italic">Precisamos do seu perfil para calibrar o Mentor IA.</p>
 
         <div className="w-full max-w-sm space-y-4">
-          {/* Mostra o número que ele digitou para ele saber o que está corrigindo */}
-          <p className="text-[10px] text-center text-gray-500 uppercase font-bold tracking-widest mb-2">
-            Cadastrando: {usuario}
-          </p>
-
-          <input
-            type="text"
-            placeholder="Seu Nome ou Apelido"
-            className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500 transition-all"
-            onChange={(e) => setPerfil({ ...perfil, nome: e.target.value })}
-          />
+          <p className="text-[10px] text-center text-gray-500 uppercase font-bold tracking-widest mb-2">Cadastrando: {usuario}</p>
+          <input type="text" placeholder="Seu Nome" className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500" onChange={(e) => setPerfil({ ...perfil, nome: e.target.value })} />
           <div className="flex gap-4">
-            <input
-              type="number"
-              placeholder="Peso (kg)"
-              className="w-1/2 bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500"
-              onChange={(e) => setPerfil({ ...perfil, peso: e.target.value })}
-            />
-            <input
-              type="number"
-              placeholder="Altura (m)"
-              className="w-1/2 bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500"
-              onChange={(e) => setPerfil({ ...perfil, altura: e.target.value })}
-            />
+            <input type="number" placeholder="Peso (kg)" className="w-1/2 bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500" onChange={(e) => setPerfil({ ...perfil, peso: e.target.value })} />
+            <input type="number" placeholder="Altura (m)" className="w-1/2 bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500" onChange={(e) => setPerfil({ ...perfil, altura: e.target.value })} />
           </div>
-          <select
-            className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl outline-none"
-            onChange={(e) => setPerfil({ ...perfil, meta: e.target.value })}
-          >
+          <select className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl outline-none" onChange={(e) => setPerfil({ ...perfil, meta: e.target.value })}>
             <option value="Emagrecimento">Meta: Emagrecimento</option>
             <option value="Hipertrofia">Meta: Hipertrofia</option>
           </select>
-
-          <div className="space-y-4 pt-2">
-            <button
-              onClick={salvarOnboarding}
-              className="w-full bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform"
-            >
-              Gerar Meu Perfil FIT →
-            </button>
-
-            {/* BOTÃO PARA VOLTAR AO LOGIN */}
-            <button
-              onClick={handleSair}
-              className="w-full text-gray-500 text-[11px] font-black uppercase tracking-widest hover:text-white transition-colors"
-            >
-              ← Errou o número? Voltar e corrigir
-            </button>
-          </div>
+          <button onClick={salvarOnboarding} className="w-full bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase active:scale-95 transition-transform">Gerar Meu Perfil FIT →</button>
+          <button onClick={handleSair} className="w-full text-gray-500 text-[11px] font-black uppercase tracking-widest">← Voltar e corrigir número</button>
         </div>
       </div>
     );
   }
 
-  // --- TELA PRINCIPAL (HOME) ---
   return (
     <div className="fixed inset-0 bg-gray-950 text-white flex flex-col overflow-hidden font-sans">
-
       {abaAtiva === "home" && (
         <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
           <header className="w-full max-w-md flex justify-between items-center mt-4 mb-8">
@@ -227,12 +184,10 @@ function App() {
           </header>
 
           <main className="w-full max-w-md flex flex-col items-center">
-            {/* Círculo de Progresso */}
             <div className="relative w-56 h-56 mb-8 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90">
                 <circle cx="112" cy="112" r="95" stroke="#111827" strokeWidth="14" fill="transparent" />
-                <circle cx="112" cy="112" r="95" stroke="#10b981" strokeWidth="14" fill="transparent"
-                  strokeDasharray="597" strokeDashoffset={597 - (597 * 0.75)} strokeLinecap="round" />
+                <circle cx="112" cy="112" r="95" stroke="#10b981" strokeWidth="14" fill="transparent" strokeDasharray="597" strokeDashoffset={597 - (597 * 0.75)} strokeLinecap="round" />
               </svg>
               <div className="absolute flex flex-col items-center text-center">
                 <span className="text-5xl font-black">{perfil.faltam}</span>
@@ -260,7 +215,6 @@ function App() {
         </div>
       )}
 
-      {/* ABA CHAT */}
       {abaAtiva === "chat" && (
         <div className="flex-1 flex flex-col overflow-hidden">
           <header className="p-4 flex items-center border-b border-white/5 bg-gray-950">
@@ -270,14 +224,12 @@ function App() {
         </div>
       )}
 
-      {/* ABA TREINO */}
       {abaAtiva === "treino" && (
         <div className="flex-1 flex flex-col bg-gray-950 p-6 overflow-y-auto">
           <header className="flex justify-between items-center mb-8">
             <button onClick={() => setAbaAtiva("home")} className="text-emerald-500 font-black text-[10px] uppercase">← Voltar</button>
             <h3 className="text-white font-black italic uppercase tracking-tighter">Treinos Fit</h3>
           </header>
-
           <div className="space-y-4">
             <button onClick={() => isVip ? setModalidadeAberta('ia') : setBloqueado(true)} className="w-full bg-gradient-to-r from-orange-600 to-orange-400 p-7 rounded-[2.5rem] flex items-center gap-5 shadow-lg">
               <div className="text-3xl">🤖</div>
@@ -286,7 +238,6 @@ function App() {
                 <p className="text-[10px] text-orange-100 uppercase font-bold">{!isVip ? "Bloqueado 🔒" : "Elite VIP"}</p>
               </div>
             </button>
-
             <button onClick={() => setModalidadeAberta('academia')} className="w-full bg-blue-600 p-7 rounded-[2.5rem] flex items-center gap-5 shadow-lg">
               <div className="text-3xl">🏋️‍♂️</div>
               <div className="text-left"><p className="font-black uppercase text-lg leading-tight text-white">Academia (ABC)</p></div>
@@ -294,11 +245,7 @@ function App() {
           </div>
 
           {modalidadeAberta && (
-            <ListaExercicios
-              modalidade={modalidadeAberta} whatsapp={usuario}
-              API_URL={API_URL} perfil={perfil}
-              treinoIA={treinoIAPescado} aoFechar={() => setModalidadeAberta(null)}
-            />
+            <ListaExercicios modalidade={modalidadeAberta} whatsapp={usuario} API_URL={API_URL} perfil={perfil} treinoIA={treinoIAPescado} aoFechar={() => setModalidadeAberta(null)} />
           )}
         </div>
       )}
