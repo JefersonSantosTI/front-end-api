@@ -153,6 +153,11 @@ function App() {
         <p className="text-gray-400 text-center text-sm mb-8 italic">Precisamos do seu perfil para calibrar o Mentor IA.</p>
 
         <div className="w-full max-w-sm space-y-4">
+          {/* Mostra o número que ele digitou para ele saber o que está corrigindo */}
+          <p className="text-[10px] text-center text-gray-500 uppercase font-bold tracking-widest mb-2">
+            Cadastrando: {usuario}
+          </p>
+
           <input
             type="text"
             placeholder="Seu Nome ou Apelido"
@@ -180,12 +185,23 @@ function App() {
             <option value="Emagrecimento">Meta: Emagrecimento</option>
             <option value="Hipertrofia">Meta: Hipertrofia</option>
           </select>
-          <button
-            onClick={salvarOnboarding}
-            className="w-full bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform"
-          >
-            Gerar Meu Perfil FIT →
-          </button>
+
+          <div className="space-y-4 pt-2">
+            <button
+              onClick={salvarOnboarding}
+              className="w-full bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform"
+            >
+              Gerar Meu Perfil FIT →
+            </button>
+
+            {/* BOTÃO PARA VOLTAR AO LOGIN */}
+            <button
+              onClick={handleSair}
+              className="w-full text-gray-500 text-[11px] font-black uppercase tracking-widest hover:text-white transition-colors"
+            >
+              ← Errou o número? Voltar e corrigir
+            </button>
+          </div>
         </div>
       </div>
     );
