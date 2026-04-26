@@ -91,12 +91,21 @@ function App() {
     const limpo = String(whatsapp).replace(/\D/g, "");
     localStorage.setItem("usuario_whatsapp", limpo);
     setUsuario(limpo);
+    setEtapa("verificando"); // Força a verificação assim que loga
   };
 
+  // 2. Atualize a função de salvar o IMC (Onboarding)
   const salvarOnboarding = async () => {
     try {
       const whatsLimpo = String(usuario).replace(/\D/g, "");
-      await fetch(`${API_URL}/usuarios/atualizar`, {
+
+      // Verificação básica antes de enviar
+      if (!perfil.peso || !perfil.altura || perfil.peso === "0") {
+        alert("Por favor, preencha peso e altura corretamente.");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/usuarios/atualizar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,9 +115,21 @@ function App() {
           meta: perfil.meta
         })
       });
-      sincronizarComBanco(usuario);
-    } catch {
-      alert("Erro ao salvar perfil.");
+
+      if (response.ok) {
+        // FORÇA A MUDANÇA DE TELA IMEDIATA
+        const saude = calcularSaude(perfil.peso, perfil.altura);
+        setPerfil(prev => ({ ...prev, ...saude }));
+        setEtapa("home");
+        setAbaAtiva("home");
+        // Sincroniza em segundo plano para garantir
+        sincronizarComBanco(whatsLimpo);
+      } else {
+        alert("Erro ao salvar no servidor. Tente novamente.");
+      }
+    } catch (err) {
+      console.error("Erro ao salvar perfil:", err);
+      alert("Erro de conexão. Verifique sua internet.");
     }
   };
 
