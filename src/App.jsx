@@ -14,9 +14,9 @@ function App() {
   const [modalidadeAberta, setModalidadeAberta] = useState(null);
 
   const [perfil, setPerfil] = useState({
-    nome: "Guerreiro(a)",
-    peso: "0",
-    altura: "0",
+    nome: "",
+    peso: "",
+    altura: "",
     meta: "Emagrecimento",
     imc: "0",
     tmb: "0",
@@ -24,24 +24,27 @@ function App() {
   });
 
   const API_URL = "https://api-backend-treino-fit.onrender.com/api";
+
+  // Ref para evitar múltiplas chamadas simultâneas à API
   const verificandoRef = useRef(false);
 
-  // 1. CÁLCULO DE BIOMETRIA (IMC/TMB)
+  // 1. CÁLCULO DE BIOMETRIA
   const calcularSaude = useCallback((peso, altura) => {
     const p = parseFloat(peso) || 0;
     const a = parseFloat(altura) || 0;
     if (p > 0 && a > 0) {
       const imc = (p / (a * a)).toFixed(1);
-      const tmb = (10 * p + (6.25 * (a * 100)) - (5 * 25)).toFixed(0); // Média base
+      const tmb = (10 * p + (6.25 * (a * 100)) - (5 * 25)).toFixed(0);
       const falta = (p * 0.1).toFixed(1);
       return { imc, tmb, falta };
     }
     return { imc: "0", tmb: "0", falta: "0" };
   }, []);
 
-  // 2. SINCRONIZAÇÃO COM O BANCO DE DADOS
+  // 2. SINCRONIZAÇÃO COM O BANCO
   const sincronizarComBanco = useCallback(async (whatsappId) => {
     if (!whatsappId || verificandoRef.current) return;
+
     try {
       verificandoRef.current = true;
       const whatsLimpo = String(whatsappId).replace(/\D/g, "");
@@ -49,32 +52,29 @@ function App() {
 
       if (response.ok) {
         const dados = await response.json();
-        const saude = calcularSaude(dados.peso, dados.altura);
 
-        setPerfil({
-          nome: dados.nome || "Guerreiro(a)",
-          peso: String(dados.peso || "0"),
-          altura: String(dados.altura || "0"),
-          meta: dados.meta || "Emagrecimento",
-          imc: saude.imc,
-          tmb: saude.tmb,
-          faltam: saude.falta
-        });
-
-        setIsVip(dados.pago === true);
-        if (dados.treinoIA) setTreinoIAPescado(dados.treinoIA);
-
-        // Se o usuário não tem peso/altura, manda para o onboarding
-        if (!dados.peso || !dados.altura || dados.peso === 0) {
+        // Se não tiver peso ou altura, obriga o onboarding
+        if (!dados.peso || dados.peso === 0 || !dados.altura) {
           setEtapa("onboarding");
         } else {
+          const saude = calcularSaude(dados.peso, dados.altura);
+          setPerfil({
+            nome: dados.nome || "Guerreiro(a)",
+            peso: String(dados.peso),
+            altura: String(dados.altura),
+            meta: dados.meta || "Emagrecimento",
+            ...saude
+          });
+          setIsVip(dados.pago === true);
+          if (dados.treinoIA) setTreinoIAPescado(dados.treinoIA);
           setEtapa("home");
         }
       } else {
-        setEtapa("login");
+        // Usuário não encontrado ou erro: vai para onboarding
+        setEtapa("onboarding");
       }
     } catch (err) {
-      console.error("Erro ao sincronizar:", err);
+      console.error("Erro ao sincronizar perfil:", err);
       setEtapa("login");
     } finally {
       verificandoRef.current = false;
@@ -82,55 +82,19 @@ function App() {
   }, [API_URL, calcularSaude]);
 
   useEffect(() => {
-    if (usuario) sincronizarComBanco(usuario);
-    else setEtapa("login");
+    if (usuario) {
+      sincronizarComBanco(usuario);
+    } else {
+      setEtapa("login");
+    }
   }, [usuario, sincronizarComBanco]);
 
-  // 3. HANDLERS (AÇÕES)
+  // 3. AÇÕES (HANDLERS)
   const handleLogin = (whatsapp) => {
     const limpo = String(whatsapp).replace(/\D/g, "");
     localStorage.setItem("usuario_whatsapp", limpo);
     setUsuario(limpo);
-    setEtapa("verificando"); // Força a verificação assim que loga
-  };
-
-  // 2. Atualize a função de salvar o IMC (Onboarding)
-  const salvarOnboarding = async () => {
-    try {
-      const whatsLimpo = String(usuario).replace(/\D/g, "");
-
-      // Verificação básica antes de enviar
-      if (!perfil.peso || !perfil.altura || perfil.peso === "0") {
-        alert("Por favor, preencha peso e altura corretamente.");
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/usuarios/atualizar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          whatsapp: whatsLimpo,
-          peso: perfil.peso,
-          altura: perfil.altura,
-          meta: perfil.meta
-        })
-      });
-
-      if (response.ok) {
-        // FORÇA A MUDANÇA DE TELA IMEDIATA
-        const saude = calcularSaude(perfil.peso, perfil.altura);
-        setPerfil(prev => ({ ...prev, ...saude }));
-        setEtapa("home");
-        setAbaAtiva("home");
-        // Sincroniza em segundo plano para garantir
-        sincronizarComBanco(whatsLimpo);
-      } else {
-        alert("Erro ao salvar no servidor. Tente novamente.");
-      }
-    } catch (err) {
-      console.error("Erro ao salvar perfil:", err);
-      alert("Erro de conexão. Verifique sua internet.");
-    }
+    setEtapa("verificando");
   };
 
   const handleSair = () => {
@@ -138,33 +102,96 @@ function App() {
     window.location.reload();
   };
 
+  const salvarOnboarding = async () => {
+    if (!perfil.nome || !perfil.peso || !perfil.altura) {
+      alert("Por favor, preencha todos os campos para continuar!");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/usuarios/atualizar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          whatsapp: usuario,
+          nome: perfil.nome,
+          peso: perfil.peso,
+          altura: perfil.altura,
+          meta: perfil.meta
+        })
+      });
+
+      if (response.ok) {
+        // Recarrega os dados do banco para garantir que a Home suba limpa
+        sincronizarComBanco(usuario);
+      } else {
+        alert("Erro ao salvar perfil. Tente novamente.");
+      }
+    } catch (err) {
+      console.error("Erro no fetch do onboarding:", err);
+      alert("Erro de conexão com o servidor.");
+    }
+  };
+
   // --- RENDERS CONDICIONAIS ---
 
-  if (etapa === "verificando") return <div className="fixed inset-0 bg-gray-950 flex items-center justify-center text-emerald-500 font-black italic">CARREGANDO PERFIL...</div>;
+  if (etapa === "verificando") {
+    return (
+      <div className="fixed inset-0 bg-gray-950 flex items-center justify-center text-emerald-500 font-black italic animate-pulse">
+        CARREGANDO PERFIL...
+      </div>
+    );
+  }
 
   if (etapa === "login") return <Login aoLogar={handleLogin} />;
 
   if (etapa === "onboarding") {
     return (
-      <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-center p-8 text-white z-[999]">
+      <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-center p-8 text-white z-[999] overflow-y-auto">
         <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center text-black font-black mb-6">FIT</div>
-        <h2 className="text-2xl font-black mb-2 uppercase italic text-emerald-500">Prepare o seu corpo</h2>
-        <p className="text-gray-400 text-center text-sm mb-8">O Mentor IA precisa desses dados para criar seu plano de elite.</p>
+        <h2 className="text-2xl font-black mb-2 uppercase italic text-emerald-500 text-center">Seja bem-vindo(a)</h2>
+        <p className="text-gray-400 text-center text-sm mb-8 italic">Precisamos do seu perfil para calibrar o Mentor IA.</p>
+
         <div className="w-full max-w-sm space-y-4">
-          <input type="number" placeholder="Peso (kg)" className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl"
-            onChange={(e) => setPerfil({ ...perfil, peso: e.target.value })} />
-          <input type="number" placeholder="Altura (m) - Ex: 1.75" className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl"
-            onChange={(e) => setPerfil({ ...perfil, altura: e.target.value })} />
-          <select className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl" onChange={(e) => setPerfil({ ...perfil, meta: e.target.value })}>
+          <input
+            type="text"
+            placeholder="Seu Nome ou Apelido"
+            className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500 transition-all"
+            onChange={(e) => setPerfil({ ...perfil, nome: e.target.value })}
+          />
+          <div className="flex gap-4">
+            <input
+              type="number"
+              placeholder="Peso (kg)"
+              className="w-1/2 bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500"
+              onChange={(e) => setPerfil({ ...perfil, peso: e.target.value })}
+            />
+            <input
+              type="number"
+              placeholder="Altura (m)"
+              className="w-1/2 bg-white/5 border border-white/10 p-5 rounded-3xl outline-none focus:border-emerald-500"
+              onChange={(e) => setPerfil({ ...perfil, altura: e.target.value })}
+            />
+          </div>
+          <select
+            className="w-full bg-white/5 border border-white/10 p-5 rounded-3xl outline-none"
+            onChange={(e) => setPerfil({ ...perfil, meta: e.target.value })}
+          >
             <option value="Emagrecimento">Meta: Emagrecimento</option>
             <option value="Hipertrofia">Meta: Hipertrofia</option>
           </select>
-          <button onClick={salvarOnboarding} className="w-full bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase shadow-lg shadow-emerald-500/20">Gerar Meu Perfil FIT →</button>
+          <button
+            onClick={salvarOnboarding}
+            className="w-full bg-emerald-500 text-black font-black py-5 rounded-3xl uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform"
+          >
+            Gerar Meu Perfil FIT →
+          </button>
         </div>
       </div>
     );
   }
 
+  // --- TELA PRINCIPAL (HOME) ---
   return (
     <div className="fixed inset-0 bg-gray-950 text-white flex flex-col overflow-hidden font-sans">
 
