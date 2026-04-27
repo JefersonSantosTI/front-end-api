@@ -3,7 +3,8 @@ import ListaMessagens from "../components/ListaMessagens";
 import ChatBox from "../components/ChatBox";
 import { api } from "../services/api";
 
-const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setTreinoIAPescado }) => {
+// Adicionamos 'perfil' nas props que o componente recebe
+const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setTreinoIAPescado, perfil }) => {
     const [loading, setLoading] = useState(false);
     const [mensagens, setMensagens] = useState([]);
     const [mostrarBotãoUpgrade, setMostrarBotãoUpgrade] = useState(false);
@@ -22,31 +23,14 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
         const txt = texto.toLowerCase();
         let mudou = false;
 
-        // --- LÓGICA DO TREINO IA (Resolve o erro do setTreinoIAPescado) ---
         if ((txt.includes("séries") || txt.includes("repetições") || txt.includes("treino montado")) && typeof setTreinoIAPescado === 'function') {
-            console.log("💪 Detectado novo treino no chat");
-            // Avisa o App.js que existe um novo treino para "pescar" do banco
             setTreinoIAPescado(texto);
         }
 
-        // 1. EXTRAIR NOME
-        const matchNome = texto.match(/(?:Obrigado|Perfeito|Olá|Deyvid|entendido),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
+        // Lógica de extração simplificada (já que agora temos o perfil oficial vindo do App)
+        const matchNome = texto.match(/(?:Obrigado|Perfeito|Olá|entendido),?\s+([a-zA-Záàâãéèêíïóôõöúçñ]{3,})/i);
         if (matchNome?.[1]) {
             localStorage.setItem("perfil_nome", matchNome[1]);
-            mudou = true;
-        }
-
-        // 2. EXTRAIR PESO
-        const matchPeso = txt.match(/(\d{2,3})\s*(?:kg|quilos)/i) || txt.match(/peso[:\s]*(\d{2,3})/i);
-        if (matchPeso && matchPeso[1] !== "0") {
-            localStorage.setItem("perfil_peso", matchPeso[1]);
-            mudou = true;
-        }
-
-        // 3. EXTRAIR ALTURA
-        const matchAltura = txt.match(/(\d[.,]\d{2})/);
-        if (matchAltura && matchAltura[1] !== "0.00") {
-            localStorage.setItem("perfil_altura", matchAltura[1].replace(',', '.'));
             mudou = true;
         }
 
@@ -68,6 +52,12 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
             const response = await api.get(`/receitas/historico/${whatsapp}`);
             const dados = Array.isArray(response.data) ? response.data : [];
 
+            // Se o histórico estiver vazio, enviamos uma mensagem oculta para a IA iniciar
+            if (dados.length === 0) {
+                onEnviarMensagem("Olá! Inicie minha consultoria agora.", true);
+                return;
+            }
+
             const totalMsgUsuario = dados.filter(m => m.role === "user").length;
             let detectouBloqueioManual = !isVip && totalMsgUsuario >= LIMITE_FREE;
             let detectouBloqueioIA = false;
@@ -86,9 +76,6 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
             setMostrarBotãoUpgrade(detectouBloqueioManual || detectouBloqueioIA);
             setMensagens(historicoFormatado);
 
-            const ultimaMsgBot = [...dados].reverse().find(m => m.role === "assistant");
-            if (ultimaMsgBot) extrairEGuardarDados(ultimaMsgBot.content);
-
         } catch (error) {
             console.error("Erro ao carregar histórico:", error);
         } finally {
@@ -100,30 +87,35 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
         carregarHistorico();
     }, [whatsapp, isVip]);
 
-    const onEnviarMensagem = async (textoDigitado) => {
+    // Adicionamos o parâmetro 'silencioso' para a primeira saudação
+    const onEnviarMensagem = async (textoDigitado, silencioso = false) => {
         if (!textoDigitado.trim()) return;
 
-        const msgsEnviadas = mensagens.filter(m => m.remetente === "usuario").length;
-        if (!isVip && msgsEnviadas >= LIMITE_FREE) {
-            setMostrarBotãoUpgrade(true);
-            return;
+        if (!silencioso) {
+            const msgsEnviadas = mensagens.filter(m => m.remetente === "usuario").length;
+            if (!isVip && msgsEnviadas >= LIMITE_FREE) {
+                setMostrarBotãoUpgrade(true);
+                return;
+            }
+            const novaMsgUser = { id: Date.now(), texto: textoDigitado, remetente: "usuario" };
+            setMensagens(prev => [...prev, novaMsgUser]);
         }
 
-        const novaMsgUser = { id: Date.now(), texto: textoDigitado, remetente: "usuario" };
-        setMensagens(prev => [...prev, novaMsgUser]);
         setLoading(true);
 
         try {
-            const perfilExtraido = {
-                nome: localStorage.getItem("perfil_nome"),
-                peso: localStorage.getItem("perfil_peso"),
-                altura: localStorage.getItem("perfil_altura")
-            };
-
+            // ENVIAMOS O PERFIL COMPLETO QUE VEM DO APP.JS
             const response = await api.post("/receitas/perguntar", {
                 whatsapp,
                 mensagemAtual: textoDigitado,
-                perfilExtraido
+                perfilExtraido: {
+                    nome: perfil.nome,
+                    peso: perfil.peso,
+                    altura: perfil.altura,
+                    meta: perfil.meta,
+                    imc: perfil.imc,
+                    tmb: perfil.tmb
+                }
             });
 
             const respostaTexto = response.data.resposta || "";
