@@ -14,9 +14,9 @@ function App() {
   const [modalidadeAberta, setModalidadeAberta] = useState(null);
 
   const [perfil, setPerfil] = useState({
-    nome: "",
-    peso: "",
-    altura: "",
+    nome: "Guerreiro(a)", // Valor inicial padrão
+    peso: "0",
+    altura: "0",
     meta: "Emagrecimento",
     imc: "0",
     tmb: "0",

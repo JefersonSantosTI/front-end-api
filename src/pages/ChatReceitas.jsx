@@ -104,19 +104,19 @@ const ChatReceitas = ({ whatsapp, isVip, aoPedirUpgrade, aoAtualizarPerfil, setT
         setLoading(true);
 
         try {
-            // ENVIAMOS O PERFIL COMPLETO QUE VEM DO APP.JS
             const response = await api.post("/receitas/perguntar", {
                 whatsapp,
                 mensagemAtual: textoDigitado,
                 perfilExtraido: {
-                    nome: perfil.nome,
-                    peso: perfil.peso,
-                    altura: perfil.altura,
-                    meta: perfil.meta,
-                    imc: perfil.imc,
-                    tmb: perfil.tmb
+                    nome: perfil?.nome || "Guerreiro", // Adicionado fallback seguro
+                    peso: perfil?.peso || 0,
+                    altura: perfil?.altura || 0,
+                    meta: perfil?.meta || "Emagrecimento",
+                    imc: perfil?.imc || "0",
+                    tmb: perfil?.tmb || "0"
                 }
             });
+            // ... resto do códi
 
             const respostaTexto = response.data.resposta || "";
             extrairEGuardarDados(respostaTexto);
