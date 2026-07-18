@@ -19,7 +19,7 @@ export default function HomeUsuario({ setEtapa }) {
                         Nossa Inteligência Artificial analisa seu perfil e cria uma rotina de treinos e uma base alimentar 100% personalizadas para você alcançar seus resultados em tempo recorde.
                     </p>
                     <button
-                        onClick={() => setEtapa('login_aluno')}
+                        onClick={() => setEtapa('login')}
                         className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-lg py-4 px-10 rounded-full shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 mx-auto w-full md:w-auto"
                     >
                         Começar Minha Transformação
@@ -128,7 +128,7 @@ export default function HomeUsuario({ setEtapa }) {
                     </div>
                 </div>
                 <button
-                    onClick={() => setEtapa('login_aluno')}
+                    onClick={() => setEtapa('login')}
                     className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg py-4 px-12 rounded-full shadow-xl transition-all"
                 >
                     Criar Minha Conta Agora
