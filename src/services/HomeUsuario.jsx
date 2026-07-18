@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bot, Apple, MessageCircle, Zap, ArrowRight, CheckCircle2 } from 'lucide-react';
 
-export default function HomeUsuario() {
+export default function HomeUsuario({ setEtapa }) {
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
 
@@ -19,7 +19,7 @@ export default function HomeUsuario() {
                         Nossa Inteligência Artificial analisa seu perfil e cria uma rotina de treinos e uma base alimentar 100% personalizadas para você alcançar seus resultados em tempo recorde.
                     </p>
                     <button
-                        onClick={() => window.location.href = '/login'}
+                        onClick={() => setEtapa('login_aluno')}
                         className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-lg py-4 px-10 rounded-full shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 mx-auto w-full md:w-auto"
                     >
                         Começar Minha Transformação
@@ -36,38 +36,41 @@ export default function HomeUsuario() {
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-8">
-                    {/* Card 1 */}
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100">
-                        <div className="flex gap-2 mb-4 h-48">
-                            <div className="w-1/2 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm font-bold">FOTO ANTES</div>
-                            <div className="w-1/2 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm font-bold">FOTO DEPOIS</div>
+
+                    {/* Card 1 - Lucas */}
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100 hover:shadow-xl transition-shadow">
+                        <div className="flex gap-2 mb-4 h-64">                            {/* Mostra a montagem inteira */}
+                            <div className="w-full bg-slate-200 rounded-xl overflow-hidden relative">
+                                <img src="/lucas-transformacao.jpg" alt="Transformação do Lucas" className="w-full h-full object-cover object-top" />                            </div>
                         </div>
                         <h3 className="font-bold text-xl mb-1">Lucas M.</h3>
-                        <p className="text-sm text-emerald-600 font-semibold mb-3">-8kg em 45 dias</p>
-                        <p className="text-slate-600 text-sm">"A base alimentar gerada pela IA foi o que mudou meu jogo. Nunca foi tão fácil seguir a dieta."</p>
+                        <p className="text-sm text-emerald-600 font-bold mb-3 uppercase tracking-wider">-8kg em 45 dias</p>
+                        <p className="text-slate-600 text-sm font-medium leading-relaxed">"A base alimentar gerada pela IA foi o que mudou meu jogo. Nunca foi tão fácil seguir a dieta."</p>
                     </div>
 
-                    {/* Card 2 */}
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100">
-                        <div className="flex gap-2 mb-4 h-48">
-                            <div className="w-1/2 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm font-bold">FOTO ANTES</div>
-                            <div className="w-1/2 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm font-bold">FOTO DEPOIS</div>
+                    {/* Card 2 - Mariana */}
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100 hover:shadow-xl transition-shadow">
+                        <div className="flex gap-2 mb-4 h-64">                            {/* Mostra a montagem inteira */}
+                            <div className="w-full bg-slate-200 rounded-xl overflow-hidden relative">
+                                <img src="/mariana-transformacao.jpg" alt="Transformação de Mariana S." className="w-full h-full object-cover object-top" />
+                            </div>
                         </div>
                         <h3 className="font-bold text-xl mb-1">Mariana S.</h3>
-                        <p className="text-sm text-emerald-600 font-semibold mb-3">Hipertrofia Acelerada</p>
-                        <p className="text-slate-600 text-sm">"Eu estava estagnada. O treino gerado pelo Treino Fit me tirou do platô na segunda semana."</p>
+                        <p className="text-sm text-emerald-600 font-bold mb-3 uppercase tracking-wider">Hipertrofia Acelerada</p>
+                        <p className="text-slate-600 text-sm font-medium leading-relaxed">"Eu estava estagnada. O treino gerado pelo Treino Fit me tirou do platô na segunda semana."</p>
                     </div>
 
-                    {/* Card 3 */}
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100">
-                        <div className="flex gap-2 mb-4 h-48">
-                            <div className="w-1/2 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm font-bold">FOTO ANTES</div>
-                            <div className="w-1/2 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm font-bold">FOTO DEPOIS</div>
+                    {/* Card 3 - Rafael */}
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-100 hover:shadow-xl transition-shadow">
+                        <div className="flex gap-2 mb-4 h-64">                            {/* Mostra a montagem inteira */}
+                            <div className="w-full bg-slate-200 rounded-xl overflow-hidden relative">
+                                <img src="/lais-transformacao.jpg" alt="Transformação da lais" className="w-full h-full object-contain" />                            </div>
                         </div>
-                        <h3 className="font-bold text-xl mb-1">Rafael T.</h3>
-                        <p className="text-sm text-emerald-600 font-semibold mb-3">Rotina Adaptada</p>
-                        <p className="text-slate-600 text-sm">"Treino em casa com pouco equipamento. A IA adaptou meus exercícios perfeitamente!"</p>
+                        <h3 className="font-bold text-xl mb-1">Lais T.</h3>
+                        <p className="text-sm text-emerald-600 font-bold mb-3 uppercase tracking-wider">Rotina Adaptada</p>
+                        <p className="text-slate-600 text-sm font-medium leading-relaxed">"Treino em casa com pouco equipamento. A IA adaptou meus exercícios perfeitamente!"</p>
                     </div>
+
                 </div>
             </section>
 
@@ -125,7 +128,7 @@ export default function HomeUsuario() {
                     </div>
                 </div>
                 <button
-                    onClick={() => window.location.href = '/login'}
+                    onClick={() => setEtapa('login_aluno')}
                     className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg py-4 px-12 rounded-full shadow-xl transition-all"
                 >
                     Criar Minha Conta Agora
