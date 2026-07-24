@@ -13,6 +13,24 @@
 
     <!-- cor da barra no mobile -->
     <meta name="theme-color" content="#10b981" />
+
+    <!-- 👇 SCRIPT NINJA ADICIONADO AQUI 👇 -->
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        // Verifica se na barra de endereços do navegador tem a palavra "/personal"
+        if (window.location.pathname.includes('/personal')) {
+          // Procura a tag de manifest que o Vite cria automaticamente
+          const manifestTag = document.querySelector('link[rel="manifest"]');
+          
+          if (manifestTag) {
+            // Se achar, troca silenciosamente para o do Personal!
+            manifestTag.href = '/manifest-personal.json';
+          }
+        }
+      });
+    </script>
+    <!-- 👆 FIM DO SCRIPT NINJA 👆 -->
+
   </head>
   
   <!-- ✅ CORRIGIDO: Deixei apenas UM body, unindo as cores -->

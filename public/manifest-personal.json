@@ -1,0 +1,12 @@
+{
+    "short_name": "Treino Fit PRO",
+    "name": "Treino Fit PRO - Área do Personal",
+    "icons": [
+      { "src": "logo192.png", "type": "image/png", "sizes": "192x192" },
+      { "src": "logo512.png", "type": "image/png", "sizes": "512x512" }
+    ],
+    "start_url": "/personal",
+    "display": "standalone",
+    "theme_color": "#10b981",
+    "background_color": "#0f172a"
+  }
