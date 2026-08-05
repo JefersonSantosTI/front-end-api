@@ -2662,8 +2662,10 @@ function App() {
 
                     {modalFeedbackAberto && (
                         <div className="fixed inset-0 z-[999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setModalFeedbackAberto(false)}>
-                            <div className="w-full max-w-md bg-[#16171d] border-2 border-emerald-500/40 rounded-[2rem] p-6 md:p-8 shadow-[0_0_50px_rgba(16,185,129,0.2)] relative" onClick={e => e.stopPropagation()}>
-                                <button onClick={() => setModalFeedbackAberto(false)} className="absolute top-5 right-5 text-neutral-500 font-black hover:text-white bg-[#0d0e12] border border-neutral-700 w-10 h-10 rounded-xl flex items-center justify-center transition-colors">✕</button>
+                            {/* 🔥 A CORREÇÃO ESTÁ AQUI NA DIV ABAIXO (Adicionado max-h-[95vh] e overflow-y-auto) */}
+                            <div className="w-full max-w-md bg-[#16171d] border-2 border-emerald-500/40 rounded-[2rem] p-6 md:p-8 shadow-[0_0_50px_rgba(16,185,129,0.2)] relative max-h-[95vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
+
+                                <button onClick={() => setModalFeedbackAberto(false)} className="absolute top-5 right-5 text-neutral-500 font-black hover:text-white bg-[#0d0e12] border border-neutral-700 w-10 h-10 rounded-xl flex items-center justify-center transition-colors z-10">✕</button>
                                 <div className="text-center mb-8 pt-2">
                                     <span className="text-6xl mb-4 block drop-shadow-lg">🔥</span>
                                     <h3 className="text-2xl font-black text-white uppercase tracking-tight">Treino Concluído!</h3>
